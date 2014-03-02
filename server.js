@@ -34,8 +34,8 @@ app.use(express.session({cookie: { path: '/', httpOnly: true, maxAge: null}, sec
 
 router(app, requestHandlers);
 
-//http.createServer(app).listen(config.port);
-app.listen(config.port);
+//http.createServer(app).listen(config.port, config.ipaddress);
+app.listen(config.port, config.ipaddress);
 
 /**
  *  Setup termination handlers (for exit and a list of signals).
@@ -50,13 +50,13 @@ process.on('exit', function() { terminate(); });
 });
 
 function terminate(sig){
-        if (typeof sig === "string") {
-           console.log('%s: Received %s - terminating server ...',
-                       Date(Date.now()), sig);
-           mongoose.connection.close();
-           process.exit(1);
-        }
-        console.log('%s: Node server stopped.', Date(Date.now()) );
-    };
+    if (typeof sig === "string") {
+       console.log('%s: Received %s - terminating server ...',
+                   Date(Date.now()), sig);
+       mongoose.connection.close();
+       process.exit(1);
+    }
+    console.log('%s: Node server stopped.', Date(Date.now()) );
+};
 
 console.log("Server Started");
