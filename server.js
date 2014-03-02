@@ -9,7 +9,7 @@ var config = require('./config.js');
 
 // (Async) Mongoose runs while the server is running rather than connecting to it multiple times (also prevents race conditions)
 // Check this first since the whole site depends on database access
-mongoose.connect(config.databaseURI);
+mongoose.connect(config.database.URI);
 /*, function (err, res) {//, { user:"admin", pass:"g8RgpGTXbgYQ" }
 	if (err) {
 		console.log('ERROR connecting to: ' + config.databaseURI + '. ' + err);
@@ -26,7 +26,6 @@ db.once('open', function() {
 });
 
 var app = express();
-//module.exports.app = app; // Let other files access the app
 app.use(express.static(__dirname + '/public'));
 app.use(express.cookieParser('JuniperBarriesD4wg'));
 app.use(express.bodyParser());

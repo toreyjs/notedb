@@ -18,6 +18,8 @@ module.exports = function(app, handles) {
 	app.get('/login', handles.page.login);
 	app.post('/login', handles.action.login);
 	app.get('/logout', handles.action.logout);
+	app.get('/newuser', handles.page.newUser);
+	app.post('/newuser', handles.action.newUser);
 	app.get('/settings', handles.page.userSettings);
 	app.post('/settings', handles.action.userSettings);
 	app.get('/start', handles.page.start);

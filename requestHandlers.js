@@ -5,6 +5,7 @@ exports.page = {};
 var pageBuilder = require('./html.js');
 var querystring = require("querystring");
 var mongoose = require('mongoose');
+var User = require('./schemas/user.js');
 //var jade = require('jade');
 /*
 MongoDB 2.2 database added.  Please make note of these credentials:
@@ -46,11 +47,11 @@ exports.page.login = function(req, res) {
 	// 	throw new MongoException("unable to authenticate");
 	// }
 
-	var db = mongoose.connection;
-	db.on('error', console.error.bind(console, 'connection error:'));
-	db.once('open', function() {
-		console.log("yay");
-	});
+	// var db = mongoose.connection;
+	// db.on('error', console.error.bind(console, 'connection error:'));
+	// db.once('open', function() {
+	// 	console.log("yay");
+	// });
 	
 	if(req.session.user) {
 		res.redirect('/start');
@@ -74,28 +75,6 @@ exports.page.login = function(req, res) {
 			db.close();
 		});*/
 		
-		/*var client = new mongoDb('notedb', new mongoServer("http://notedb-tjs7664.rhcloud.com/", 27017, {}));
-		client.open(function(err, p_client) {
-		  client.collection('test_insert', test);
-		});
-		var test = function (err, collection) {
-		  collection.insert({a:2}, function(err, docs) {
-
-			collection.count(function(err, count) {
-			  test.assertEquals(1, count);
-			});
-
-			// Locate all the entries using find
-			collection.find().toArray(function(err, results) {
-			  test.assertEquals(1, results.length);
-			  test.assertTrue(results[0].a === 2);
-
-			  // Let's close the db
-			  client.close();
-			});
-		  });
-		};*/
-		
 		//var options = { pretty:true };
 		//var html = jade.renderFile('./templates/login.jade', options);
 		//options = { pretty:true, title:"Login", body:html };
@@ -108,6 +87,8 @@ exports.page.login = function(req, res) {
 			<input type='submit' name='submit' value='Submit' />\
 			<input type='reset' name='reset' value='Reset' />\
 		</form>\
+		\
+		<a href='newuser'>Create new account</a>\
 		";
 		var page = pageBuilder.buildPage(html, "Login", req, res);
 		
@@ -115,9 +96,45 @@ exports.page.login = function(req, res) {
 	}
 };
 
-exports.action.logout = function(req, res){
+exports.action.logout = function(req, res) {
 	req.session.destroy();
 	res.redirect('/');
+};
+
+exports.action.newUser = function(req, res) {
+	var username = req.body.username;
+	var password = req.body.password;
+	var email = req.body.email;
+
+	var message = "";
+	
+	User.findByUsername(username, function(err, data) {
+		if(message === "") {
+			res.submitMessage = { type:"success", message:"Account Created." };
+		} else {
+			res.submitMessage = { type:"error", message:message };
+		}
+		exports.page.newUser(req, res);
+	});
+};
+
+exports.page.newUser = function(req, res) {
+	var html = "\
+	<form action='login' method='POST'>\
+	<table>\
+		<tr><th>Username:	</th><td><input type='text' name='username' placeholder='Username' /></td></tr>\
+		<tr><th>Password:	</th><td><input type='password' name='password' placeholder='Password' /></td></tr>\
+		<tr><th>Email:		</th><td><input type='email' name='email' placeholder='User@Email.com' /></td></tr>\
+		<tr><td></td>\
+		<td>\
+			<input type='submit' name='submit' value='Submit' />\
+			<input type='reset' name='reset' value='Reset' />\
+		</td></tr>\
+	</table>\
+	</form>\
+	";
+	
+	writePage(res, pageBuilder.buildPage(html, "Create Account", req, res, res.submitMessage));
 };
 
 exports.page.userSettings = function(req, res) {
@@ -208,6 +225,45 @@ function writePage(res, page, options) {
 	res.writeHead(code, type);
 	res.write(page);
 	res.end();
+}
+
+function objectToString(o){
+    
+    var parse = function(_o){
+    
+        var a = [], t;
+        
+        for(var p in _o){
+        
+            if(_o.hasOwnProperty(p)){
+            
+                t = _o[p];
+                
+                if(t && typeof t == "object"){
+                
+                    a[a.length]= p + ":{ " + arguments.callee(t).join(", ") + "}";
+                    
+                }
+                else {
+                    
+                    if(typeof t == "string"){
+                    
+                        a[a.length] = [ p+ ": \"" + t.toString() + "\"" ];
+                    }
+                    else{
+                        a[a.length] = [ p+ ": " + t.toString()];
+                    }
+                    
+                }
+            }
+        }
+        
+        return a;
+        
+    }
+    
+    return "{" + parse(o).join(", ") + "}";
+    
 }
 
 //}END Helper Functions

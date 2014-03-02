@@ -1,6 +1,9 @@
 function getHeader(title, req, message) {
 	if(title === undefined) title = "NO TITLE!";
-	var messageDiv = (message === undefined ? "" : "<div class='"+message.type+"'>"+message.message+"</div>")
+	var messageDiv = "";
+	if (message !== undefined) {
+		messageDiv = (typeof message == "object" ? "<div class='"+message.type+"'>"+message.message+"</div>" : "<div class='error'>"+message+"</div>");
+	}
 	var html = "\
 <!DOCTYPE html>\
 <html lang='en'>\
