@@ -5,7 +5,7 @@ exports.page = {};
 var pageBuilder = require('./html.js');
 var querystring = require("querystring");
 var mongoose = require('mongoose');
-var User = require('./schemas/user.js');
+var User = require('./schemas/user.js').model;
 //var jade = require('jade');
 /*
 MongoDB 2.2 database added.  Please make note of these credentials:
@@ -34,12 +34,21 @@ exports.action.login = function(req, res) {
 		req.session.user.username = "username";
 		req.session.user.email = "tjs7664@g.rit.edu";
 		res.redirect('/start');
+	}else{
+		res.submitMessage = "Incorrect Username / Password";
+		exports.page.login(req, res);
 	}
 }
 
 exports.page.login = function(req, res) {
 	console.log("Request handler 'login' was called.");
-	
+
+	//console.log('Connection:');
+	// for(var i in mongoose.connection) {
+	// 	if(typeof mongoose.connection[i] !== "function")
+	// 		console.log(i+": "+mongoose.connection[i]);
+	// }
+
 	// var conn = new Mongo("notedb-tjs7664.rhcloud.com", 27017);
 	// var db = conn.getDB("notedb");
 
@@ -81,7 +90,7 @@ exports.page.login = function(req, res) {
 		//html = jade.renderFile('./templates/base.jade', options);
 		
 		var html = "\
-		<form action='login' method='POST'>\
+		<form action='"+req.path+"' method='POST'>\
 			<input type='text' name='username' placeholder='Username' /><br />\
 			<input type='password' name='password' placeholder='Password' /><br />\
 			<input type='submit' name='submit' value='Submit' />\
@@ -90,7 +99,7 @@ exports.page.login = function(req, res) {
 		\
 		<a href='newuser'>Create new account</a>\
 		";
-		var page = pageBuilder.buildPage(html, "Login", req, res);
+		var page = pageBuilder.buildPage(html, "Login", req, res, res.submitMessage);
 		
 		writePage(res, page);
 	}
@@ -120,7 +129,7 @@ exports.action.newUser = function(req, res) {
 
 exports.page.newUser = function(req, res) {
 	var html = "\
-	<form action='login' method='POST'>\
+	<form action='"+req.path+"' method='POST'>\
 	<table>\
 		<tr><th>Username:	</th><td><input type='text' name='username' placeholder='Username' /></td></tr>\
 		<tr><th>Password:	</th><td><input type='password' name='password' placeholder='Password' /></td></tr>\
@@ -139,7 +148,7 @@ exports.page.newUser = function(req, res) {
 
 exports.page.userSettings = function(req, res) {
 	if(requiresLogin(req, res)) return;
-	var html = "<form method='POST' action='settings'><input type='submit' value='POST POST POST!' /></form>";
+	var html = "<form method='POST' action='"+req.path+"'><input type='submit' value='POST POST POST!' /></form>";
 	writePage(res, pageBuilder.buildPage(html, "Start", req, res, res.submitMessage ));
 }
 
@@ -225,45 +234,6 @@ function writePage(res, page, options) {
 	res.writeHead(code, type);
 	res.write(page);
 	res.end();
-}
-
-function objectToString(o){
-    
-    var parse = function(_o){
-    
-        var a = [], t;
-        
-        for(var p in _o){
-        
-            if(_o.hasOwnProperty(p)){
-            
-                t = _o[p];
-                
-                if(t && typeof t == "object"){
-                
-                    a[a.length]= p + ":{ " + arguments.callee(t).join(", ") + "}";
-                    
-                }
-                else {
-                    
-                    if(typeof t == "string"){
-                    
-                        a[a.length] = [ p+ ": \"" + t.toString() + "\"" ];
-                    }
-                    else{
-                        a[a.length] = [ p+ ": " + t.toString()];
-                    }
-                    
-                }
-            }
-        }
-        
-        return a;
-        
-    }
-    
-    return "{" + parse(o).join(", ") + "}";
-    
 }
 
 //}END Helper Functions

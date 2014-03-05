@@ -21,9 +21,27 @@ mongoose.connect(config.database.URI);
 
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', function() {
-	console.log("yay");
+// db.on('error', console.error.bind(console, 'connection error:'));
+// db.once('open', function() {
+// 	console.log("yay");
+// });
+
+var Schema = mongoose.Schema;
+var Posts = new Schema({
+  name : String,
 });
+mongoose.model('Post', Posts);
+
+function createNewPost(){
+    var Post = mongoose.model('Post');
+    var post = new Post({name:'new name'});
+    post.save(function(err){
+      console.log("saving");
+        if(!err){
+            console.log('Post saved.');
+        }
+    });
+}
 
 var app = express();
 app.use(express.static(__dirname + '/public'));
@@ -33,8 +51,8 @@ app.use(express.session({cookie: { path: '/', httpOnly: true, maxAge: null}, sec
 
 router(app, requestHandlers);
 
-//http.createServer(app).listen(config.port, config.ipaddress);
-app.listen(config.port, config.ipaddress);
+//http.createServer(app).listen(config.port, config.host);
+app.listen(config.port, config.host);
 
 /**
  *  Setup termination handlers (for exit and a list of signals).
