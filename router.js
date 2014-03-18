@@ -14,17 +14,22 @@ http://localhost:8888/start?foo=bar&hello=world
 */
 
 module.exports = function(app, handles) {
-	app.get('/', handles.page.login);
-	app.get('/login', handles.page.login);
-	app.post('/login', handles.action.login);
+	app.get('/', handles.page.home);
+	both(app, '/login', handles.page.login, handles.action.login);
 	app.get('/logout', handles.action.logout);
-	app.get('/newuser', handles.page.newUser);
-	app.post('/newuser', handles.action.newUser);
-	app.get('/settings', handles.page.userSettings);
-	app.post('/settings', handles.action.userSettings);
-	app.get('/start', handles.page.start);
-	app.post('/upload', handles.upload);
+	both(app, '/newuser', handles.page.newUser, handles.action.newUser);
+	both(app, '/settings', handles.page.userSettings, handles.action.userSettings);
+	both(app, '/createboard', handles.page.createBoard, handles.action.createBoard);
+	both(app, '/staff', handles.page.staff, handles.action.staff);
+	app.get('/board/:board', handles.page.board);
+	//app.get('/start', handles.page.start);
+	//app.post('/upload', handles.upload);
 	app.get('*', handles.page.page404);
+}
+
+function both(app, pathname, get, post) {
+	app.get(pathname, get);
+	app.post(pathname, post);
 }
 
 /*function(handle, pathname, response, postData) {

@@ -21,10 +21,9 @@ mongoose.connect(config.database.URI);
 
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
-// db.on('error', console.error.bind(console, 'connection error:'));
-// db.once('open', function() {
-// 	console.log("yay");
-// });
+db.once('open', function() {
+	console.log("yay");
+});
 
 var Schema = mongoose.Schema;
 var Posts = new Schema({

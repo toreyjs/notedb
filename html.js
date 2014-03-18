@@ -10,8 +10,8 @@ function getHeader(title, req, message) {
 	<head>\
 		<meta charset='utf-8' />\
 		<title>NoteDB - "+title+"</title>\
-		<link href='css_js/style.css' rel='stylesheet'>\
-		<script src='css_js/javascript.js' type='text/javascript'></script>\
+		<link href='/css_js/style.css' rel='stylesheet'>\
+		<script src='/css_js/javascript.js' type='text/javascript'></script>\
 	</head>\
 	<body>\
 		<header>\
@@ -38,9 +38,9 @@ function getFooter() {
 
 function getNav() {
 	var html = "\
-	<a href='start'>Start</a>\
-	<a href='settings'>User Settings</a>\
-	<a href='404'>404</a>\
+	<a href='/'>Home</a>\
+	<a href='/createboard'>Add a new Board</a>\
+	<a href='/404'>404</a>\
 	";
 	return html;
 }
@@ -60,8 +60,10 @@ function getUserbox(req)
 		result = "\
 		<div id='userbox'>\
 			<span style='float:right; text-align:right;'>\
-				<span style='font-size:125%; display:inline-block; width:100px; margin-right:3px;'>"+user.username+"</span>\
+				<span style='font-size:125%; display:inline-block; width:150px; margin-right:3px;'>"+user.username+"</span>\
 				<br />\
+				<a href='/settings'>Settings</a>\
+				&bull;\
 				<a href='logout'>Logout</a>\
 			</span>\
 			<a href='http://en.gravatar.com/'><img src='"+imgSrc+"' alt='Your Gravatar' title='Your Gravatar' /></a>\
