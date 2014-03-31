@@ -2,7 +2,7 @@ var mongoose = require("mongoose");
 var Schema, Model;
 
 Schema = new mongoose.Schema({
-	username	: { type: String, required: true, trim: true, unique: true },
+	username	: { type: String, required: true, trim: true, lowercase: true, unique: true },
 	password	: { type: String, required: true },
 	/* http://mongoosejs.com/docs/api.html#schema_string_SchemaString-match */
 	email		: { type: String, required: true, match: /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i },

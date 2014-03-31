@@ -14,14 +14,21 @@ http://localhost:8888/start?foo=bar&hello=world
 */
 
 module.exports = function(app, handles) {
-	app.get('/', handles.page.home);
-	both(app, '/login', handles.page.login, handles.action.login);
-	app.get('/logout', handles.action.logout);
-	both(app, '/newuser', handles.page.newUser, handles.action.newUser);
-	both(app, '/settings', handles.page.userSettings, handles.action.userSettings);
-	both(app, '/createboard', handles.page.createBoard, handles.action.createBoard);
-	both(app, '/staff', handles.page.staff, handles.action.staff);
-	app.get('/board/:board', handles.page.board);
+	app.get(	'/', handles.page.home);
+	both(app,	'/login', handles.page.login, handles.action.login);
+	app.get(	'/logout', handles.action.logout);
+	both(app,	'/newuser', handles.page.newUser, handles.action.newUser);
+	both(app,	'/createboard', handles.page.createBoard, handles.action.createBoard);
+	both(app,	'/createorganization', handles.page.createOrganization, handles.action.createOrganization);
+	both(app,	'/staff/:page', handles.page.staffPage, handles.action.staffPage);
+	both(app,	'/staff', handles.page.staff, handles.action.staff);
+
+	app.get(	'/user/:username', handles.page.user);
+	both(app,	'/user/:username/settings', handles.page.userSettings, handles.action.userSettings);
+	app.get(	'/board/:board', handles.page.board);
+	both(app,	'/board/:board/settings', handles.page.boardSettings, handles.action.boardSettings);
+	app.get(	'/organization/:organization', handles.page.organization);
+	both(app,	'/organization/:organization/settings', handles.page.organizationSettings, handles.action.organizationSettings);
 	//app.get('/start', handles.page.start);
 	//app.post('/upload', handles.upload);
 	app.get('*', handles.page.page404);

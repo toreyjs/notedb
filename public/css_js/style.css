@@ -1,26 +1,36 @@
 * { font-size:14px; background:#000; color:#888; }
-a { position:relative; color: #FFF; -moz-transition: color, text-shadow, top .5s; }
+a { position:relative; background:transparent; color: #FFF; -moz-transition: color, text-shadow, top .5s; }
 a:hover { color: #EEE; text-shadow: 0 0 8px rgba(255,255,255,.6); top:-1px; -moz-transition: color, text-shadow, top 1s; text-decoration:none; }
 .clear { clear:both; }
 h2 { font-size:165%; }
+h3 { font-size:145%; border-bottom:1px solid #222; }
 table { background:#333; }
 table th { font-size:125%; background:#440000; }
+label { font-weight:bold; font-size:120%; }
 input { padding:3px; }
 input[type=submit], input[type=reset] { background:#2A0202; padding:1px 2px; }
 input[type=submit]:hover, input[type=reset]:hover { background:#3A0303; }
-input[disabled=disabled], input[disabled=disabled]:hover { background:#444; }
+input[disabled], input[disabled]:hover { background:#444; }
+option[disabled] { text-decoration:line-through; }
+
+.dropdownmenu { position:relative; display:inline-block; }
+.drop { padding:1px 3px; background:#2A0202; border:1px solid gray; border-radius:3px; cursor:pointer; }
+.drop:hover { background:#3A0303; }
+.drop:after { content:" 👇"; }
+.menu { display:none; }
+.drop:hover+.menu, .menu:hover { display:block; }
 
 header { position:relative; padding: 3px 5px 15px 35px; margin-bottom:2px; background:#444; min-height:50px; border-bottom:3px solid #666; border-radius:0 0 4px 4px; }
 header * { background:transparent; }
 
 header h1 { color:black; display:inline-block; font-size:200%; margin:0; padding:0; }
 header nav { display:inline-block; margin-left:15px; padding:2px 3px 5px; position:absolute; bottom:0; }
-header nav a+a { border-left:2px solid #666; padding-left:5px; }
+header nav a+a, header nav a+.dropdownmenu, header nav .dropdownmenu+a { border-left:2px solid #666; padding-left:5px; }
 header #userbox { float:right; height:46px; border:2px inset #DDD; background:#333; }
 header #userbox img { margin:1px; border:1px solid #000; }
 
-#message>* { display: block; position: relative; font-size: 130%; text-align: center; margin: 10px 5px 15px; padding: 5px 0; border-radius: 8px 8px 0 0; }
-#message>*:after { content: ''; display: block; position: absolute; top: 0; bottom: 0; left: 0; right: 0; border-radius: 8px 8px 0 0; }
+#message>* { display: block; position: relative; font-size: 130%; text-align: center; margin: 10px 5px 10px; padding: 5px 0; border-radius: 8px 8px 0 0; }
+#message>*:after { content: ''; display: block; position: absolute; top: 0; bottom: 0; left: 0; right: 0; border-radius: 8px 8px 0 0; pointer-events: none; }
 
 #message .success {
 	color: #002255;

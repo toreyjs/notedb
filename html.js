@@ -20,13 +20,14 @@ function getHeader(title, req, message) {
 			<nav>"+getNav()+"</nav>\
 			<div class='clear'></div>\
 		</header>\
-		<div id='message'>"+messageDiv+"</div>\
+		<div id='message'>"+messageDiv+"<noscript><div class='error'>Javascript is needed to access all features of this site; Please enable it.</div></noscript></div>\
 		<div id='content'>";
 	return html;
 }
 
 function getFooter() {
 	var html = "\
+			<div class='clear'></div>\
 		</div><!-- end #content -->\
 		<footer>\
 			Torey Scheer &copy; 2014 \
@@ -39,8 +40,15 @@ function getFooter() {
 function getNav() {
 	var html = "\
 	<a href='/'>Home</a>\
-	<a href='/createboard'>Add a new Board</a>\
+	<span class='dropdownmenu'>\
+		<span class='drop'>Add</span>\
+		<div class='menu'>\
+			<a href='/createboard'>new Board</a><br />\
+			<a href='/createorganization'>new Organization</a>\
+		</div>\
+	</span>\
 	<a href='/404'>404</a>\
+	<a href='/staff'>Staff Dashboard</a>\
 	";
 	return html;
 }
@@ -53,16 +61,16 @@ function getUserbox(req)
 	if(user) {
 		
 		//var email = get_user_info($username); $email = $email["email"];
-		var myHash = md5(user.email);//md5( strtolower( trim( $email ) ) );
+		var myHash = md5(user.email);
 		var myParams = "?s=42";
 		var imgSrc = "http://www.gravatar.com/avatar/"+myHash+myParams;
 		
 		result = "\
 		<div id='userbox'>\
 			<span style='float:right; text-align:right;'>\
-				<span style='font-size:125%; display:inline-block; width:150px; margin-right:3px;'>"+user.username+"</span>\
+				<span style='font-size:125%; display:inline-block; width:150px; margin-right:3px;'>"+user.displayName+"</span>\
 				<br />\
-				<a href='/settings'>Settings</a>\
+				<a href='/user/"+user.username+"/settings'>Settings</a>\
 				&bull;\
 				<a href='logout'>Logout</a>\
 			</span>\
