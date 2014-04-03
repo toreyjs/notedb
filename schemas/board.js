@@ -10,9 +10,12 @@ Schema = new mongoose.Schema({
 		access	: { type: Number, required: true, 'default': 0 }, /* 0:none (viewing), 1:normal (editing), 2:admin (can add users, etc), 3:bureaucrat (add users, admins, and other bereaucrats [creater of board is automatically this])  */
 		joinDate: { type: Date, 'default': Date.now }
 	}],
-	notes		: [{
-		section	: Number,
-		text	: String
+	sections	: [{
+		title	: { type: String, required: true },
+		notes	: [{
+			title		: { type: String, required: true },
+			description	: { type: String, required: true }
+		}],
 	}],
 	organizationID	: { type: mongoose.Schema.ObjectId },
 	creationDate: { type: Date, 'default': Date.now }

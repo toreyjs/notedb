@@ -25,13 +25,12 @@ module.exports = function(app, handles) {
 
 	app.get(	'/user/:username', handles.page.user);
 	both(app,	'/user/:username/settings', handles.page.userSettings, handles.action.userSettings);
-	app.get(	'/board/:board', handles.page.board);
+	both(app,	'/board/:board', handles.page.board, handles.action.board);
 	both(app,	'/board/:board/settings', handles.page.boardSettings, handles.action.boardSettings);
 	app.get(	'/organization/:organization', handles.page.organization);
 	both(app,	'/organization/:organization/settings', handles.page.organizationSettings, handles.action.organizationSettings);
-	//app.get('/start', handles.page.start);
-	//app.post('/upload', handles.upload);
-	app.get('*', handles.page.page404);
+
+	both(app,	'*', handles.page.page404, handles.action.page404);
 }
 
 function both(app, pathname, get, post) {

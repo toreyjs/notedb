@@ -87,6 +87,7 @@ exports.page.home = function(req, res) {
 				html += "<ul>";
 				for(var i in boards)
 				{ var board = boards[i];
+					console.log(board);
 					html += "<li><a href='/board/"+board._id+"'>"+board.boardName+"</a></li>";
 				}
 				html += "</ul>";
@@ -137,7 +138,7 @@ exports.page.home = function(req, res) {
 				var imgSrc = "http://www.gravatar.com/avatar/"+md5(user.email)+"?s=200";
 				html += "<a href='http://en.gravatar.com/'><img src='"+imgSrc+"' alt=\""+user.displayName+"'s' Gravatar\" title=\""+user.displayName+"'s Gravatar\" /></a>";
 
-				html += "<p><b>Creation Date:</b> "+user.creationDate+"</p>";
+				html += "<p><b>Creation Date:</b> "+dateFormat(user.creationDate)+"</p>";
 				writePage(res, pageBuilder.buildPage(html, user.displayName, req, res, res.submitMessage ));
 			} else {
 				exports.page.page404(req, res);
@@ -228,10 +229,10 @@ exports.page.home = function(req, res) {
 		var html = "\
 		<form action='"+req.path+"' method='POST'>\
 		<table>\
-			<tr><th>Username:	</th><td><input type='text' name='username' placeholder='Username' value='"+(req.body.username || '')+"' /></td></tr>\
-			<tr><th>Password:	</th><td><input type='password' name='password' placeholder='Password' /></td></tr>\
-			<tr><td>			</td><td><input type='password' name='repeatpassword' placeholder='Repeat Password' /></td></tr>\
-			<tr><th>Email:		</th><td><input type='email' name='email' placeholder='User@Email.com' value='"+(req.body.email || '')+"' /></td></tr>\
+			<tr><th>Username:	</th><td><input type='text' name='username' placeholder='Username' value='"+(req.body.username || '')+"' required /></td></tr>\
+			<tr><th>Password:	</th><td><input type='password' name='password' placeholder='Password' required /></td></tr>\
+			<tr><td>			</td><td><input type='password' name='repeatpassword' placeholder='Repeat Password' required /></td></tr>\
+			<tr><th>Email:		</th><td><input type='email' name='email' placeholder='User@Email.com' value='"+(req.body.email || '')+"' required /></td></tr>\
 			<tr><td></td>\
 			<td>\
 				<input type='submit' name='submit' value='Submit' />\
@@ -283,14 +284,147 @@ exports.page.home = function(req, res) {
 		var boardId = req.params.board;
 		var html = "";
 		Board.findById(boardId, function(err, board) {
-			if(board) {
-				html += "<p>"+board.creationDate+"</p>";
-				html += "<a style='float:right;' href='/board/"+boardId+"/settings'>Edit Settings</a>";
+			if(!board) { exports.page.page404(req, res); }
+			else {
+				if(board.boardType != 0/*Not public*/) {
+					if(requiresLogin(req, res)) return;
+					// ###############################################################TODO: check if user on board / in an organization
+					// If user cannot access board, print out error message and jump out of thread.
+					if(false) {
+
+					}// Else just continue
+				}
+				html += "<div id='board'>\
+					<div class='content'>";
+
+					for(var s = 0; s < board.sections.length; s++) { var section = board.sections[s];
+						html += "\
+						<section>\
+							<h2 class='sectionheader'>"+section.title+"</h2> \
+							<span class='dropdownmenu'>\
+								<span class='drop'></span>\
+								<div class='menu'>\
+									<form action='"+req.path+"' method='POST'>\
+										<input name='section' type='hidden' value='"+s+"' />\
+										<input name='deletesection' type='submit' value='Delete Section' />\
+									</form>\
+								</div>\
+							</span>\
+							<div class='cards'>\
+						";
+
+						for(var n = 0; n < section.notes.length; n++) { var note = section.notes[n];
+							html += "\
+								<div class='card'>\
+									<span class='dropdownmenu' style='float:right;'>\
+										<span class='drop'></span>\
+										<div class='menu'>\
+											<form action='"+req.path+"' method='POST'>\
+												<input name='section' type='hidden' value='"+s+"' />\
+												<input name='card' type='hidden' value='"+n+"' />\
+												<input name='deletecard' type='submit' value='Delete Card' />\
+											</form>\
+										</div>\
+									</span>\
+									"+note.title+"\
+								</div>";
+						}
+
+						html += "\
+								<div class='card large'>\
+									<form action='"+req.path+"' method='POST'>\
+										<input name='section' type='hidden' value='"+s+"' />\
+										<input name='title' type='text' placeholder='New Card Title' required /><br />\
+										<input name='description' type='text' placeholder='Description' required /><br />\
+										<input name='addcard' type='submit' value='Add Card' />\
+									</form>\
+								</div>\
+								<div class='clear'></div>\
+							</div>\
+						</section>\
+						";
+					}
+					html += "\
+						<section>\
+							<form action='"+req.path+"' method='POST'>\
+								<input name='title' type='text' placeholder='New Section Title' required />\
+								<input name='addsection' type='submit' value='Add Section' />\
+							</form>\
+						</section>\
+					</div><!--End .content-->\
+					<aside>\
+						<p><b>Created:</b> "+dateFormat(board.creationDate)+"</p>\
+						<a href='/board/"+boardId+"/settings'>Edit Settings</a>\
+					</aside>\
+					";
+				html += "</div><!--End #board-->";
 				writePage(res, pageBuilder.buildPage(html, board.boardName, req, res, res.submitMessage ));
-			} else {
-				exports.page.page404(req, res);
 			}
 		});
+	};
+
+	exports.action.board = function(req, res) {
+		if(requiresLogin(req, res)) return;
+
+		var boardId = req.params.board;
+		var steps = makeSteps(checkActionPerformed, finish);
+		steps.nextStep();
+
+		function checkActionPerformed() {
+			Board.findById(boardId, function(err, board) {
+				if(!board) { exports.page.page404(req, res); }
+				else {
+					// ###############################################################TODO: check if user on board / in an organization
+					// If user cannot access board, print out error message and jump out of thread.
+					if(false) {
+
+					}// Else just continue
+
+					if(req.body.addsection) {
+						var title = req.body.title;
+
+						board.sections.push({ title:title });
+						board.save(function(err, board) {
+							steps.nextStep();
+						});
+					}
+					else if(req.body.addcard) {
+						var section = req.body.section;
+						var title = req.body.title;
+						var description = req.body.description;
+
+						if(section < board.sections.length && section >= 0) {
+							board.sections[section].notes.push({ title:title, description:description });
+							board.save(function(err, board) {
+								steps.nextStep();
+							});
+						} else {
+							// complain
+						}
+						
+					}
+					else if(req.body.deletecard) {
+						var section = req.body.section;
+						var card = req.body.card;
+						board.sections[section].notes[card].remove();
+						board.save(function(err, board) {
+							steps.nextStep();
+						});
+					}
+					else if(req.body.deletesection) {
+						var section = req.body.section;
+						board.sections[section].remove();
+						board.save(function(err, board) {
+							steps.nextStep();
+						});
+					}
+				}
+			});
+		}
+
+		function finish() {
+			getAfterPost("board", req, res, { type:"success", message:"Item added /edited / w/e-ed successfully." });
+		}
 	};
 
 	exports.page.boardSettings = function(req, res) {
@@ -339,7 +473,7 @@ exports.page.home = function(req, res) {
 			html += "\
 			<form action='"+req.path+"' method='POST'>\
 				<label for='boardName'>Board Name</label><br />\
-				<input type='text' name='boardName' placeholder='Board Name' />\
+				<input type='text' name='boardName' placeholder='Board Name' required />\
 				<select name='privacy'>\
 					 <option value='0' selected>Public</option>\
 					 <option value='1'>Private</option>\
@@ -401,7 +535,7 @@ exports.page.home = function(req, res) {
 		var html = "";
 		Organization.findById(orgId, function(err, org) {
 			if(org) {
-				html += "<p><b>Created:</b> "+org.creationDate+"</p>";
+				html += "<p><b>Created:</b> "+dateFormat(org.creationDate)+"</p>";
 				html += "<h2>Users on the board</h2>\
 				<ul>";
 				for(var i = 0; i < org.users.length; i++)
@@ -450,7 +584,7 @@ exports.page.home = function(req, res) {
 		var html = "\
 		<form action='"+req.path+"' method='POST'>\
 			<label for='orgname'>Organization Name</label><br />\
-			<input type='text' name='orgname' placeholder='Organization Name' />\
+			<input type='text' name='orgname' placeholder='Organization Name' required />\
 			<select name='privacy'>\
 				 <option value='0' selected>Public</option>\
 				 <option value='1'>Private</option>\
@@ -691,6 +825,11 @@ exports.page.home = function(req, res) {
 		var html = "<strong>That web page doesn't exist.</strong>";
 		writePage(res, pageBuilder.buildPage(html, "404", req, res, { type:"error", message:"HTTP Status Code: 404" }), { code:404 });
 	};
+
+	exports.action.page404 = function(req, res) {
+		var html = "<strong>You cannot post to this web address.</strong>";
+		writePage(res, pageBuilder.buildPage(html, "404", req, res, { type:"error", message:"HTTP Status Code: 404" }), { code:404 });
+	};
 //}END Error Pages
 
 //{REGION Helper Functions
@@ -768,5 +907,12 @@ exports.page.home = function(req, res) {
 
 	function md5(str) {
 		return require('crypto').createHash('md5').update(str).digest('hex');
+	}
+
+	function dateFormat(date) {
+		var m_names = new Array("Jan.", "Feb.", "Mar.", 
+		"Apr.", "May", "Jun.", "Jul.", "Aug.", "Sep.", 
+		"Oct.", "Nov.", "Dec.");
+		return util.format("%s %s, %s", m_names[date.getMonth()], date.getDate(), (date.getFullYear()+"").substr(2, 2));
 	}
 //}END Helper Functions

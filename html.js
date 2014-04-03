@@ -10,13 +10,12 @@ function getHeader(title, req, message) {
 	<head>\
 		<meta charset='utf-8' />\
 		<title>NoteDB - "+title+"</title>\
-		<link href='/css_js/style.css' rel='stylesheet'>\
-		<script src='/css_js/javascript.js' type='text/javascript'></script>\
+		<link href='/css_js/style.css' rel='stylesheet' />\
 	</head>\
 	<body>\
 		<header>\
 			"+getUserbox(req)+"\
-			<h1>"+title+"</h1>\
+			<a href='"+req.path+"'><h1>"+title+"</h1></a>\
 			<nav>"+getNav()+"</nav>\
 			<div class='clear'></div>\
 		</header>\
@@ -32,6 +31,7 @@ function getFooter() {
 		<footer>\
 			Torey Scheer &copy; 2014 \
 		</footer>\
+		<script src='/css_js/javascript.js' type='text/javascript'></script>\
 	</body>\
 </html>";
 	return html;
@@ -40,6 +40,7 @@ function getFooter() {
 function getNav() {
 	var html = "\
 	<a href='/'>Home</a>\
+	<span class='headerlinkborder'></span>\
 	<span class='dropdownmenu'>\
 		<span class='drop'>Add</span>\
 		<div class='menu'>\
@@ -47,6 +48,7 @@ function getNav() {
 			<a href='/createorganization'>new Organization</a>\
 		</div>\
 	</span>\
+	<span class='headerlinkborder'></span>\
 	<a href='/404'>404</a>\
 	<a href='/staff'>Staff Dashboard</a>\
 	";
@@ -62,23 +64,23 @@ function getUserbox(req)
 		
 		//var email = get_user_info($username); $email = $email["email"];
 		var myHash = md5(user.email);
-		var myParams = "?s=42";
+		var myParams = "?s=42&d=identicon";
 		var imgSrc = "http://www.gravatar.com/avatar/"+myHash+myParams;
 		
 		result = "\
 		<div id='userbox'>\
 			<span style='float:right; text-align:right;'>\
-				<span style='font-size:125%; display:inline-block; width:150px; margin-right:3px;'>"+user.displayName+"</span>\
+				<a style='color:#888; font-size:125%; display:inline-block; width:150px; margin-right:3px;' href='/user/"+user.username+"'>"+user.displayName+"</a>\
 				<br />\
 				<a href='/user/"+user.username+"/settings'>Settings</a>\
 				&bull;\
-				<a href='logout'>Logout</a>\
+				<a href='/logout'>Logout</a>\
 			</span>\
 			<a href='http://en.gravatar.com/'><img src='"+imgSrc+"' alt='Your Gravatar' title='Your Gravatar' /></a>\
 		</div>\
 		";
 	}else{
-		result = "<nav style='right:3px;'><a href='login'>Login</a></nav>";
+		result = "<nav style='right:3px;'><a href='/login'>Login</a></nav>";
 	}
 	return result;
 }
