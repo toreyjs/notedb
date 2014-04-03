@@ -655,8 +655,9 @@ exports.page.home = function(req, res) {
 				if(req.body.makestaff) {
 					User.findByUsername(username, function(err, user) {
 						user.access = req.session.user.access = 2;
-						user.save();
-						getAfterPost("staff", req, res, { type:'success', message:'You\'ve been successfully added as staff!' });
+						user.save(function(err, user) {
+							getAfterPost("staff", req, res, { type:'success', message:'You\'ve been successfully added as staff!' });
+						});
 					});
 				}
 			} else {
