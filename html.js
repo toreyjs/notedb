@@ -70,13 +70,13 @@ function getUserbox(req)
 		result = "\
 		<div id='userbox'>\
 			<span style='float:right; text-align:right;'>\
-				<a style='color:#888; font-size:125%; display:inline-block; width:150px; margin-right:3px;' href='/user/"+user.username+"'>"+user.displayName+"</a>\
+				<a style='color:#888; font-size:125%; display:inline-block; margin-right:3px;' href='/user/"+user.username+"'>"+user.displayName+"</a>\
 				<br />\
 				<a href='/user/"+user.username+"/settings'>Settings</a>\
 				&bull;\
 				<a href='/logout'>Logout</a>\
 			</span>\
-			<a href='http://en.gravatar.com/'><img src='"+imgSrc+"' alt='Your Gravatar' title='Your Gravatar' /></a>\
+			<a href='/user/"+user.username+"' style='margin-right:3px;'><img src='"+imgSrc+"' alt='Your Gravatar' title='Your Gravatar' /></a>\
 		</div>\
 		";
 	}else{

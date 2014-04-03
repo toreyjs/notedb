@@ -135,7 +135,7 @@ exports.page.home = function(req, res) {
 		var html = "";
 		User.findByUsername(username, function(err, user) {
 			if(user) {
-				var imgSrc = "http://www.gravatar.com/avatar/"+md5(user.email)+"?s=200";
+				var imgSrc = "http://www.gravatar.com/avatar/"+md5(user.email)+"?s=200&d=identicon";
 				html += "<a href='http://en.gravatar.com/'><img src='"+imgSrc+"' alt=\""+user.displayName+"'s' Gravatar\" title=\""+user.displayName+"'s Gravatar\" /></a>";
 
 				html += "<p><b>Creation Date:</b> "+dateFormat(user.creationDate)+"</p>";
