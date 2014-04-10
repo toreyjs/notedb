@@ -12,9 +12,14 @@ Schema = new mongoose.Schema({
 	}],
 	sections	: [{
 		title	: { type: String, required: true },
-		notes	: [{
+		cards	: [{
 			title		: { type: String, required: true },
-			description	: { type: String, required: true }
+			description	: { type: String, required: true },
+			comments	: [{
+				userID		: { type: mongoose.Schema.ObjectId, required: true },
+				comment		: { type: String, required: true },
+				creationDate: { type: Date, 'default': Date.now }
+			}]
 		}],
 	}],
 	organizationID	: { type: mongoose.Schema.ObjectId },
@@ -39,6 +44,34 @@ Schema.methods.addUser = function(username, access, callback) {
 	});
 };
 
+Schema.methods.findCard = function(cardID, callback) {
+	//var query = Model.findOne( {"_id":mongoose.Schema.ObjectId(boardID), "sections.cards._id":mongoose.Schema.ObjectId(cardID)} );
+	// var query = Model.findById(boardID);//.findOne({ "_id":cardID });
+	// query.exec(function(err, board) {
+	// 	if(err) { callback(err); return; }
+	// 	for(var i = 0; i < board.sections; i++) {
+	// 		for (var i = 0; i < board.sections.cards.length; i++) {
+	// 			var card = board.sections.cards[i];
+	// 			if(card._id == cardID) {
+	// 				callback(err, card);
+	// 				return;
+	// 			}
+	// 		};
+	// 	}
+	// });
+	
+	for(var s = 0; s < this.sections.length; s++) {
+		for (var c = 0; c < this.sections[s].cards.length; c++) {
+			var card = this.sections[s].cards[c];
+			if(card._id == cardID) {
+				callback(undefined, card);
+				return;
+			}
+		};
+	}
+	callback();
+};
+
 Schema.statics.findByOrganization = function(organizationID, callback) {
 	return Model.find({ organizationID: organizationID }, callback);
 };
@@ -48,17 +81,6 @@ Schema.statics.findByUser = function(playerID, callback) {
 	var query = Model.find({}).elemMatch("users", { playerID: playerID });
 	query.exec(callback);
 	//return Model.find({ users: { $all: [{ "$elemMatch" : { playerID: playerID } }] } }, callback);
-
-	//return Model.find({
-	//	users: { "$elemMatch" : { playerID: playerID } }
-	//});
-
-	//return Model.elemMatch("users", { playerID: playerID });
-
-	//var users = Model.find({ users: [] }, function(err, data) {
-	//	var userss = users.elemMatch("users", { playerID: playerID });
-	//	callback(err, userss);
-	//});
 };
 
 Model = mongoose.model('Board', Schema);

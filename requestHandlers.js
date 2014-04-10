@@ -197,8 +197,8 @@ exports.page.home = function(req, res) {
 		var message = "";
 		var addError = function(msg) { message += ( message === "" ? msg : "<br />"+msg ) };
 		
-		if(displayName.length < 6 || displayName.length > 32) {
-			addError("Display Name must be between 6-32 characters long.");
+		if(displayName.length < 1 || displayName.length > 32) {
+			addError("Display Name must be between 1-32 characters long.");
 		}
 
 		if(req.session.user.password != password) {
@@ -215,8 +215,9 @@ exports.page.home = function(req, res) {
 				user.displayName = displayName;
 				user.email = email;
 				user.password = password;
-				user.save(function (err, newuser) {
+				user.save(function (err, user) {
 					if (err) addError(err.message);
+					req.session.user = user;
 					getAfterPost("userSettings", req, res, (message === "" ? { type:"success", message:"Settings Saved!" } : message));
 				});
 			});
@@ -284,17 +285,64 @@ exports.page.home = function(req, res) {
 		var boardId = req.params.board;
 		var html = "";
 		Board.findById(boardId, function(err, board) {
-			if(!board) { exports.page.page404(req, res); }
-			else {
-				if(board.boardType != 0/*Not public*/) {
-					if(requiresLogin(req, res)) return;
-					// ###############################################################TODO: check if user on board / in an organization
-					// If user cannot access board, print out error message and jump out of thread.
-					if(false) {
+			if(!board) { exports.page.page404(req, res); return; }
 
-					}// Else just continue
+			if(board.boardType != 0/*Not public*/) {
+				if(requiresLogin(req, res)) return;
+			}
+			// ###############################################################TODO: check if user on board / in an organization
+			// If user cannot access board, print out error message and jump out of thread (OR just don't allow edit if public).
+			var canEdit = (req.session.user ? true : false);
+			if(false) {
+
+			}// Else just continue
+
+
+			if(req.query.get) {
+				var cardID = req.query.card;
+				if(req.query.get == "window" && cardID) {
+					Board.findById(boardId, function(err, board) {
+						board.findCard(cardID, function(err, card) {
+							if(card) {
+								html += "\
+								<h3>Description</h3>\
+								<div class='description'>\
+									"+card.description+"\
+								</div>\
+								<h3>Comments</h3>\
+								<div class='comments'>\
+								";
+								if(canEdit) {
+									html += "\
+									<div class='newcomment'>\
+										<form action='"+req.path+"' method='POST'>\
+											<input name='card' type='hidden' value='"+card._id+"' />\
+											<input name='comment' type='text' placeholder='Wassup?' required /><br />\
+											<input name='addcomment' type='submit' value='Add Comment' />\
+										</form>\
+									</div>\
+									";
+								}
+								for(var i = 0; i < card.comments.length; i++)
+								{ var comment = card.comments[i];
+									html += "\
+									<div class='comment'>\
+										<div class='comment-text'>"+comment.comment+"</div>\
+									</div>\
+									";
+								}
+								html += "</div>\
+								";
+								writePage(res, html);
+							}
+							else { writePage(res, "No such card! (404)"); }
+						});
+					});
 				}
-				html += "<div id='board'>\
+				else { writePage(res, "You messed something up! (404)"); }
+			} else {
+				html += "\
+				<div id='board'>\
 					<div class='content'>";
 
 					for(var s = 0; s < board.sections.length; s++) { var section = board.sections[s];
@@ -313,9 +361,9 @@ exports.page.home = function(req, res) {
 							<div class='cards'>\
 						";
 
-						for(var n = 0; n < section.notes.length; n++) { var note = section.notes[n];
+						for(var n = 0; n < section.cards.length; n++) { var card = section.cards[n];
 							html += "\
-								<div class='card'>\
+								<div id='"+card._id+"' class='card'>\
 									<span class='dropdownmenu' style='float:right;'>\
 										<span class='drop'></span>\
 										<div class='menu'>\
@@ -326,12 +374,12 @@ exports.page.home = function(req, res) {
 											</form>\
 										</div>\
 									</span>\
-									"+note.title+"\
+									"+card.title+"\
 								</div>";
 						}
-
-						html += "\
-								<div class='card large'>\
+						if(canEdit) {
+							html += "\
+								<div class='newcard'>\
 									<form action='"+req.path+"' method='POST'>\
 										<input name='section' type='hidden' value='"+s+"' />\
 										<input name='title' type='text' placeholder='New Card Title' required /><br />\
@@ -339,18 +387,25 @@ exports.page.home = function(req, res) {
 										<input name='addcard' type='submit' value='Add Card' />\
 									</form>\
 								</div>\
+							";
+						}
+						html += "\
 								<div class='clear'></div>\
 							</div>\
 						</section>\
 						";
 					}
-					html += "\
+					if(canEdit) {
+						html += "\
 						<section>\
 							<form action='"+req.path+"' method='POST'>\
 								<input name='title' type='text' placeholder='New Section Title' required />\
 								<input name='addsection' type='submit' value='Add Section' />\
 							</form>\
 						</section>\
+						";
+					}
+					html += "\
 					</div><!--End .content-->\
 					<aside>\
 						<p><b>Created:</b> "+dateFormat(board.creationDate)+"</p>\
@@ -394,7 +449,7 @@ exports.page.home = function(req, res) {
 						var description = req.body.description;
 
 						if(section < board.sections.length && section >= 0) {
-							board.sections[section].notes.push({ title:title, description:description });
+							board.sections[section].cards.push({ title:title, description:description });
 							board.save(function(err, board) {
 								steps.nextStep();
 							});
@@ -406,7 +461,7 @@ exports.page.home = function(req, res) {
 					else if(req.body.deletecard) {
 						var section = req.body.section;
 						var card = req.body.card;
-						board.sections[section].notes[card].remove();
+						board.sections[section].cards[card].remove();
 						board.save(function(err, board) {
 							steps.nextStep();
 						});
@@ -519,7 +574,10 @@ exports.page.home = function(req, res) {
 			newboard.addUser(req.session.user.username, 3, function(err, newboard) {
 				newboard.save(function (err, newboard) {
 					if (err) addError(err.message);
-					var submitMessage = ( message === "" ? { type:"success", message:"Board Created." } : { type:"error", message:message } );
+					var submitMessage = ( message === ""
+						? { type:"success", message:"Board Created. <a href='/board/"+newboard._id+"'>Visit it now.</a>" }
+						: { type:"error", message:message }
+					);
 					getAfterPost('createBoard', req, res, submitMessage);
 				});
 			});

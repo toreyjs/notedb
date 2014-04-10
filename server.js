@@ -1,10 +1,12 @@
 //{REGION Requires
-var http = require("http");
-var express = require("express");
-var mongoose = require("mongoose");
-var router = require("./router");
-var requestHandlers = require("./requestHandlers");
-var config = require('./config.js');
+  var http = require("http");
+  var express = require("express");
+  var mongoose = require("mongoose");
+  var lessMiddleware = require('less-middleware');
+
+  var router = require("./router");
+  var requestHandlers = require("./requestHandlers");
+  var config = require('./config.js');
 //}END Requires
 
 // (Async) Mongoose runs while the server is running rather than connecting to it multiple times (also prevents race conditions)
@@ -21,32 +23,18 @@ mongoose.connect(config.database.URI);
 
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
-// db.once('open', function() {
-// 	console.log("yay");
-// });
-
-var Schema = mongoose.Schema;
-var Posts = new Schema({
-  name : String,
-});
-mongoose.model('Post', Posts);
-
-function createNewPost(){
-    var Post = mongoose.model('Post');
-    var post = new Post({name:'new name'});
-    post.save(function(err){
-      console.log("saving");
-        if(!err){
-            console.log('Post saved.');
-        }
-    });
-}
+// db.once('open', function() { console.log("yay"); });
 
 var app = express();
 app.use(express.static(__dirname + '/public'));
 app.use(express.cookieParser('JuniperBarriesD4wg'));
 app.use(express.bodyParser());
 app.use(express.session({cookie: { path: '/', httpOnly: true, maxAge: null}, secret:'JuniperBarriesD4wg!'}));
+app.configure(function(){
+  //other configuration here...
+  app.use(lessMiddleware(__dirname+"/public", { compress : true }));
+  //app.use(express.static(__dirname+'/public'));
+});
 
 router(app, requestHandlers);
 

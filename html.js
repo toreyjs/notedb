@@ -11,8 +11,10 @@ function getHeader(title, req, message) {
 		<meta charset='utf-8' />\
 		<title>NoteDB - "+title+"</title>\
 		<link href='/css_js/style.css' rel='stylesheet' />\
+		<script src='http://code.jquery.com/jquery-latest.min.js'></script>\
 	</head>\
 	<body>\
+		<div id='overlay'></div>\
 		<header>\
 			"+getUserbox(req)+"\
 			<a href='"+req.path+"'><h1>"+title+"</h1></a>\
@@ -30,6 +32,7 @@ function getFooter() {
 		</div><!-- end #content -->\
 		<footer>\
 			Torey Scheer &copy; 2014 \
+			<span style='float:right;'><a href='https://github.com/toreyjs/notedb'>View code on Github</a></span>\
 		</footer>\
 		<script src='/css_js/javascript.js' type='text/javascript'></script>\
 	</body>\
