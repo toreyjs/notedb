@@ -26,15 +26,11 @@ db.on('error', console.error.bind(console, 'connection error:'));
 // db.once('open', function() { console.log("yay"); });
 
 var app = express();
+app.use(lessMiddleware(__dirname+"/public", { compress : true }));
 app.use(express.static(__dirname + '/public'));
 app.use(express.cookieParser('JuniperBarriesD4wg'));
 app.use(express.bodyParser());
 app.use(express.session({cookie: { path: '/', httpOnly: true, maxAge: null}, secret:'JuniperBarriesD4wg!'}));
-app.configure(function(){
-  //other configuration here...
-  app.use(lessMiddleware(__dirname+"/public", { compress : true }));
-  //app.use(express.static(__dirname+'/public'));
-});
 
 router(app, requestHandlers);
 

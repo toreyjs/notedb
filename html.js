@@ -32,7 +32,7 @@ function getFooter() {
 		</div><!-- end #content -->\
 		<footer>\
 			Torey Scheer &copy; 2014 \
-			<span style='float:right;'><a href='https://github.com/toreyjs/notedb'>View code on Github</a></span>\
+			<span style='float:right;'><a href='https://github.com/toreyjs/notedb' target='_blank'>View code on Github</a></span>\
 		</footer>\
 		<script src='/css_js/javascript.js' type='text/javascript'></script>\
 	</body>\
@@ -83,7 +83,7 @@ function getUserbox(req)
 		</div>\
 		";
 	}else{
-		result = "<nav style='right:3px;'><a href='/login'>Login</a></nav>";
+		result = "<nav style='right:3px;'><a id='loginlink' href='/login'>Login</a></nav>";
 	}
 	return result;
 }

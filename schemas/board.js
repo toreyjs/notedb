@@ -4,7 +4,7 @@ var Schema, Model;
 
 Schema = new mongoose.Schema({
 	boardName	: { type: String, required: true },
-	boardType	: { type:Number, required: true, 'default': 0 }, /* 0:public, 1:private */
+	boardType	: { type:Number, required: true, 'default': 0 }, /* 0:public, 1:private, 2:viewable by organization members */
 	users		: [{
 		playerID: { type: mongoose.Schema.ObjectId, required: true },
 		access	: { type: Number, required: true, 'default': 0 }, /* 0:none (viewing), 1:normal (editing), 2:admin (can add users, etc), 3:bureaucrat (add users, admins, and other bereaucrats [creater of board is automatically this])  */
@@ -15,10 +15,15 @@ Schema = new mongoose.Schema({
 		cards	: [{
 			title		: { type: String, required: true },
 			description	: { type: String, required: true },
+			priority	: { type: Number, required: true, 'default': 0 }, /* 0:none, 1:low, 2:medium, 3:high */
 			comments	: [{
 				userID		: { type: mongoose.Schema.ObjectId, required: true },
 				comment		: { type: String, required: true },
 				creationDate: { type: Date, 'default': Date.now }
+			}],
+			users		: [{
+				userID		: { type: mongoose.Schema.ObjectId, required: true },
+				dateAdded	: { type: Date, 'default': Date.now }
 			}]
 		}],
 	}],
@@ -45,21 +50,6 @@ Schema.methods.addUser = function(username, access, callback) {
 };
 
 Schema.methods.findCard = function(cardID, callback) {
-	//var query = Model.findOne( {"_id":mongoose.Schema.ObjectId(boardID), "sections.cards._id":mongoose.Schema.ObjectId(cardID)} );
-	// var query = Model.findById(boardID);//.findOne({ "_id":cardID });
-	// query.exec(function(err, board) {
-	// 	if(err) { callback(err); return; }
-	// 	for(var i = 0; i < board.sections; i++) {
-	// 		for (var i = 0; i < board.sections.cards.length; i++) {
-	// 			var card = board.sections.cards[i];
-	// 			if(card._id == cardID) {
-	// 				callback(err, card);
-	// 				return;
-	// 			}
-	// 		};
-	// 	}
-	// });
-	
 	for(var s = 0; s < this.sections.length; s++) {
 		for (var c = 0; c < this.sections[s].cards.length; c++) {
 			var card = this.sections[s].cards[c];

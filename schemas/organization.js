@@ -6,7 +6,7 @@ Schema = new mongoose.Schema({
 	name		: { type: String, required: true },
 	type		: { type:Number, required: true, 'default': 0 }, /* 0:public, 1:private */
 	users		: [{
-		playerID: { type: mongoose.Schema.ObjectId, required: true },
+		userID: { type: mongoose.Schema.ObjectId, required: true },
 		access	: { type: Number, required: true, 'default': 0 }, /* 0:none (viewing), 1:normal (editing), 2:admin (can add users, etc), 3:bureaucrat (add users, admins, and other bereaucrats [creater of board is automatically this])  */
 		joinDate: { type: Date, 'default': Date.now }
 	}],
@@ -26,14 +26,13 @@ Schema.methods.addUser = function(username, access, callback) {
 	var self = this;
 	User.findByUsername(username, function(err, user) {
 		if(err) { if(callback) callback(err); return; }
-		self.users.push({ playerID:user._id, access:access });
+		self.users.push({ userID:user._id, access:access });
 		if(callback) callback(undefined, self);
 	});
 };
 
-Schema.statics.findByUser = function(playerID, callback) {
-	//return Model.find({}, callback).elemMatch("users", { playerID: playerID });
-	var query = Model.find({}).elemMatch("users", { playerID: playerID });
+Schema.statics.findByUser = function(userID, callback) {
+	var query = Model.find({}).elemMatch("users", { userID: userID });
 	query.exec(callback);
 };
 

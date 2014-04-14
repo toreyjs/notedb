@@ -19,7 +19,7 @@ exports.page = {};
 			res.redirect('/');
 		} else {
 			var html = "\
-			<form action='"+req.path+"' method='POST' style='display:inline-block; padding-right:10px;'>\
+			<form id='loginform' action='"+req.path+"' method='POST' style='display:inline-block; padding-right:10px;'>\
 				<input type='text' name='username' placeholder='Username' /><br />\
 				<input type='password' name='password' placeholder='Password' /><br />\
 				<input type='submit' name='submit' value='Submit' />\
@@ -29,11 +29,11 @@ exports.page = {};
 			<div style='display:inline-block;'>\
 				< Login <br />\
 				<strong style='font-size:150%;'>OR</strong><br />\
-				<a href='newuser'>Create new account</a>\
+				<a href='/newuser'>Create new account</a>\
 			</div>\
 			";
+
 			var page = pageBuilder.buildPage(html, "Login", req, res, res.submitMessage);
-			
 			writePage(res, page);
 		}
 	};
@@ -46,12 +46,7 @@ exports.page = {};
 		
 		User.findByUsername(username, function(err, user) {
 			if(user != null && password == user.password) {
-				//req.session.user = {};
 				req.session.user = user;
-				//req.session.user.username = user.username;
-				//req.session.user.email = user.email;
-				//req.session.user.access = user.access;
-				//req.session.user._id = user._id;
 				if(req.session.pagebeforelogin) {
 					res.redirect(req.session.pagebeforelogin);
 					req.session.pagebeforelogin = undefined;
@@ -59,8 +54,7 @@ exports.page = {};
 					res.redirect('/');
 				}
 			}else{
-				res.submitMessage = "Incorrect Username / Password";
-				exports.page.login(req, res);
+				getAfterPost("login", req, res, "Incorrect Username / Password");
 			}
 		});
 	};
@@ -87,7 +81,6 @@ exports.page.home = function(req, res) {
 				html += "<ul>";
 				for(var i in boards)
 				{ var board = boards[i];
-					console.log(board);
 					html += "<li><a href='/board/"+board._id+"'>"+board.boardName+"</a></li>";
 				}
 				html += "</ul>";
@@ -108,7 +101,7 @@ exports.page.home = function(req, res) {
 					html += "<h3 style='display:inline-block;'>"+org.name+"</h3> (<a href='/organization/"+org._id+"'>details</a>)";
 					Board.findByOrganization(org._id, function(err, boards) {
 						if(boards.length == 0) {
-							html += "<p>This organization currently has no boards (or you lack the permissions to view them).</p>";
+							html += "<p>This organization currently has no boards.</p>";
 						} else {
 							html += "<ul>";
 							for(var i in boards)
@@ -135,7 +128,7 @@ exports.page.home = function(req, res) {
 		var html = "";
 		User.findByUsername(username, function(err, user) {
 			if(user) {
-				var imgSrc = "http://www.gravatar.com/avatar/"+md5(user.email)+"?s=200&d=identicon";
+				var imgSrc = getGravatar(user.email, 200);
 				html += "<a href='http://en.gravatar.com/'><img src='"+imgSrc+"' alt=\""+user.displayName+"'s' Gravatar\" title=\""+user.displayName+"'s Gravatar\" /></a>";
 
 				html += "<p><b>Creation Date:</b> "+dateFormat(user.creationDate)+"</p>";
@@ -299,16 +292,79 @@ exports.page.home = function(req, res) {
 
 
 			if(req.query.get) {
-				var cardID = req.query.card;
-				if(req.query.get == "window" && cardID) {
-					Board.findById(boardId, function(err, board) {
-						board.findCard(cardID, function(err, card) {
-							if(card) {
+				if(req.query.get == "window" && (cardID = req.query.card)) {
+					board.findCard(cardID, function(err, card) {
+						if(card) {
+							var attachedUsers = {}, commentUsers = {};
+							var getUserSteps = makeSteps(getAttachedUsers, getCommentUsers, finish);
+							getUserSteps.nextStep();
+
+							function getAttachedUsers() {
+								var ids = [];
+								for (var i = 0; i < card.users.length; i++) {
+									ids.push(card.users[i].userID);
+								}
+								User.findUsersById(ids, function(err, users) {
+									attachedUsers = users;
+									getUserSteps.nextStep();
+								});
+							}
+
+							function getCommentUsers() {
+								var ids = [];
+								for (var i = 0; i < card.comments.length; i++) {
+									ids.push(card.comments[i].userID);
+								}
+								User.findUsersById(ids, function(err, users) {
+									commentUsers = users;
+									getUserSteps.nextStep();
+								});
+							}
+
+							function finish() {
 								html += "\
-								<h3>Description</h3>\
-								<div class='description'>\
-									"+card.description+"\
+								<input id='cardID' type='hidden' value='"+card._id+"' />\
+								<div class='cardtitle' data-card='"+card._id+"'>\
+									<h2 class='cardtitle-text' style='display:inline;'>"+card.title+"</h2> \
+									"+(canEdit ? "<a class='editcardtitle'>[edit]</a>" : "")+"\
 								</div>\
+								<hr />\
+								\
+								<h3>Description</h3>\
+								<div class='description' data-card='"+card._id+"'>\
+									<span class='description-text'>"+card.description+"</span> \
+									"+(canEdit ? "<a class='editcarddescription'>[edit]</a>" : "")+"\
+								</div>\
+								\
+								<h3>Attached Users</h3>\
+								<div class='users' data-card='"+card._id+"'>\
+								";
+								if(card.users.length == 0) { html += "There are no users attached to this card."; }
+								for (var i = 0; i < card.users.length; i++) {
+									var id = card.users[i].userID, user = attachedUsers[id];
+									html += "\
+									<span class='attached-user' data-user='"+id+"'>\
+										<a href='/user/"+user.username+"' class='imagelink'>\
+											<img src='"+getGravatar(user.email, 40)+"' />\
+										</a>\
+										"+(canEdit ? "<br /><a class='removeattacheduser'>Remove</a>" : "")+"\
+									</span>\
+									";
+								}
+								var addAttachLink = canEdit && req.session.user && /*User not in list*/!attachedUsers[req.session.user._id];
+								html += "\
+									"+(addAttachLink ? "<a class='attachselftocard'>[attach self]</a>" : "")+"\
+								</div>";
+
+								var pTextArray = ["Not a", "Low", "Medium", "High"];
+								var pClassArray = ["", "priority-low", "priority-medium", "priority-high"];
+								html += "\
+								<h3>Priority</h3>\
+								<div class='priority' data-priority='"+card.priority+"' data-card='"+card._id+"'>\
+									<span class='priority-text "+pClassArray[card.priority]+"'>"+(pTextArray[card.priority])+" Priority</span> \
+									"+(canEdit ? "<a class='editcardpriority'>[edit]</a>" : "")+"\
+								</div>\
+								\
 								<h3>Comments</h3>\
 								<div class='comments'>\
 								";
@@ -317,26 +373,45 @@ exports.page.home = function(req, res) {
 									<div class='newcomment'>\
 										<form action='"+req.path+"' method='POST'>\
 											<input name='card' type='hidden' value='"+card._id+"' />\
-											<input name='comment' type='text' placeholder='Wassup?' required /><br />\
+											<input name='comment' type='text' placeholder='Wassup?' required />\
 											<input name='addcomment' type='submit' value='Add Comment' />\
+											<hr />\
 										</form>\
 									</div>\
 									";
 								}
 								for(var i = 0; i < card.comments.length; i++)
-								{ var comment = card.comments[i];
+								{ var comment = card.comments[i], user = commentUsers[comment.userID];
 									html += "\
 									<div class='comment'>\
-										<div class='comment-text'>"+comment.comment+"</div>\
-									</div>\
-									";
+										<a href='/user/"+user.username+"' class='imagelink'>\
+											<img class='comment-avatar' src='"+getGravatar(user.email, 30)+"' />\
+										</a>\
+										<div class='comment-wrapper'>\
+											<a class='comment-user' href='/user/"+user.username+"'>"+user.displayName+"</a>\
+											<div class='comment-text'>"+comment.comment+"</div>";
+									if(canEdit) {
+										html += "\
+											<form action='"+req.path+"' method='POST'>\
+												"+dateFormat(comment.creationDate)+" \
+												<input name='card' type='hidden' value='"+card._id+"' />\
+												<input name='comment' type='hidden' value='"+i+"' />\
+												<input name='deletecomment' type='submit' value='Delete' />\
+											</form>\
+										</div>\
+										";
+									} else {
+										html += dateFormat(comment.creationDate);
+									}
+									html += "</div>";
 								}
+								if(card.comments.length == 0) { html += "[No comments]"; }
 								html += "</div>\
 								";
 								writePage(res, html);
 							}
-							else { writePage(res, "No such card! (404)"); }
-						});
+						}
+						else { writePage(res, "No such card! (404)"); }
 					});
 				}
 				else { writePage(res, "You messed something up! (404)"); }
@@ -346,9 +421,9 @@ exports.page.home = function(req, res) {
 					<div class='content'>";
 
 					for(var s = 0; s < board.sections.length; s++) { var section = board.sections[s];
-						html += "\
-						<section>\
-							<h2 class='sectionheader'>"+section.title+"</h2> \
+						var sectionDropdown = "";
+						if(canEdit) {
+							sectionDropdown = "\
 							<span class='dropdownmenu'>\
 								<span class='drop'></span>\
 								<div class='menu'>\
@@ -357,23 +432,35 @@ exports.page.home = function(req, res) {
 										<input name='deletesection' type='submit' value='Delete Section' />\
 									</form>\
 								</div>\
-							</span>\
+							</span>";
+						}
+
+						html += "\
+						<section>\
+							<h2 class='sectionheader "+(canEdit ? "editable" : "")+"' data-section='"+s+"'>"+section.title+"</h2> \
+							"+sectionDropdown+"\
 							<div class='cards'>\
 						";
 
 						for(var n = 0; n < section.cards.length; n++) { var card = section.cards[n];
+							var cardDropdown = "";
+							if(canEdit) {
+								cardDropdown = "\
+								<span class='dropdownmenu' style='float:right;'>\
+									<span class='drop'></span>\
+									<div class='menu'>\
+										<form action='"+req.path+"' method='POST'>\
+											<input name='section' type='hidden' value='"+s+"' />\
+											<input name='card' type='hidden' value='"+n+"' />\
+											<input name='deletecard' type='submit' value='Delete Card' />\
+										</form>\
+									</div>\
+								</span>";
+							}
+
 							html += "\
 								<div id='"+card._id+"' class='card'>\
-									<span class='dropdownmenu' style='float:right;'>\
-										<span class='drop'></span>\
-										<div class='menu'>\
-											<form action='"+req.path+"' method='POST'>\
-												<input name='section' type='hidden' value='"+s+"' />\
-												<input name='card' type='hidden' value='"+n+"' />\
-												<input name='deletecard' type='submit' value='Delete Card' />\
-											</form>\
-										</div>\
-									</span>\
+									"+cardDropdown+"\
 									"+card.title+"\
 								</div>";
 						}
@@ -422,8 +509,7 @@ exports.page.home = function(req, res) {
 		if(requiresLogin(req, res)) return;
 
 		var boardId = req.params.board;
-		var steps = makeSteps(checkActionPerformed, finish);
-		steps.nextStep();
+		checkActionPerformed();
 
 		function checkActionPerformed() {
 			Board.findById(boardId, function(err, board) {
@@ -440,7 +526,7 @@ exports.page.home = function(req, res) {
 
 						board.sections.push({ title:title });
 						board.save(function(err, board) {
-							steps.nextStep();
+							finish("Section Added Successfully");
 						});
 					}
 					else if(req.body.addcard) {
@@ -451,34 +537,133 @@ exports.page.home = function(req, res) {
 						if(section < board.sections.length && section >= 0) {
 							board.sections[section].cards.push({ title:title, description:description });
 							board.save(function(err, board) {
-								steps.nextStep();
+								finish("Card Added Successfully");
 							});
 						} else {
 							// complain
 						}
 						
 					}
+					else if(req.body.attachselftocard) {
+						var cardID = req.body.card;
+						var userID = req.session.user._id;
+
+						board.findCard(cardID, function(err, card){
+							card.users.push({ userID:userID });
+							board.save(function(err, board) {
+								//finish("You are now attached to the card <i>"+card.title+"</i>.");
+								writePage(res, "You are now attached to the card <i>"+card.title+"</i>.");
+							});
+						});
+					}
+					else if(req.body.addcomment) {
+						var cardID = req.body.card;
+						var comment = req.body.comment;
+						var userID = req.session.user._id;
+
+						board.findCard(cardID, function(err, card){
+							card.comments.push({ userID:userID, comment:comment });
+							board.save(function(err, board) {
+								finish("Comment Added Successfully");
+							});
+						});
+					}
+
+					else if(req.body.editsectiontitle) {
+						var sectionI = req.body.section;
+						var title = req.body.title;
+
+						board.sections[sectionI].title = title;
+						board.save(function(err, board) {
+							finish("Section Title Edited Successfully");
+						});
+					}
+					else if(req.body.editcardtitle) {
+						var cardID = req.body.card;
+						var title = req.body.title;
+
+						board.findCard(cardID, function(err, card){
+							card.title = title;
+							board.save(function(err, board) {
+								finish("Card Title Edited Successfully");
+							});
+						});
+					}
+					else if(req.body.editcarddescription) {
+						var cardID = req.body.card;
+						var description = req.body.description;
+
+						board.findCard(cardID, function(err, card){
+							card.description = description;
+							board.save(function(err, board) {
+								finish("Card Description Edited Successfully");
+							});
+						});
+					}
+					else if(req.body.editcardpriority) {
+						var cardID = req.body.card;
+						var priority = req.body.priority;
+
+						board.findCard(cardID, function(err, card){
+							card.priority = priority;
+							board.save(function(err, board) {
+								finish("Card Priority Edited Successfully");
+							});
+						});
+					}
+
+					else if(req.body.deletesection) {
+						var section = req.body.section;
+						board.sections[section].remove();
+						board.save(function(err, board) {
+							finish("Section Deleted Successfully");
+						});
+					}
 					else if(req.body.deletecard) {
 						var section = req.body.section;
 						var card = req.body.card;
 						board.sections[section].cards[card].remove();
 						board.save(function(err, board) {
-							steps.nextStep();
+							finish("Card Deleted Successfully");
 						});
 					}
-					else if(req.body.deletesection) {
-						var section = req.body.section;
-						board.sections[section].remove();
-						board.save(function(err, board) {
-							steps.nextStep();
+					else if(req.body.removeattacheduser) {
+						var cardID = req.body.card;
+						var userID = req.body.user;
+
+						board.findCard(cardID, function(err, card){
+							for (var i = 0; i < card.users.length; i++) {
+								var user = card.users[i];
+
+								if(user.userID == userID) { 
+									card.users[i].remove();
+									board.save(function(err, board) {
+										//finish("You have been unattached from the card <i>"+card.title+"</i>.");
+										writePage(res, "You have been unattached from the card <i>"+card.title+"</i>.");
+										return;
+									});
+								}
+							}
+						});
+					}
+					else if(req.body.deletecomment) {
+						var cardID = req.body.card;
+						var commentI = req.body.comment;
+
+						board.findCard(cardID, function(err, card){
+							card.comments[commentI].remove();
+							board.save(function(err, board) {
+								finish("Comment Deleted Successfully");
+							});
 						});
 					}
 				}
 			});
 		}
 
-		function finish() {
-			getAfterPost("board", req, res, { type:"success", message:"Item added /edited / w/e-ed successfully." });
+		function finish(msg) {
+			var message = (msg.type == "error" ? msg : { type:"success", message:msg })
+			getAfterPost("board", req, res, message);
 		}
 	};
 
@@ -488,7 +673,17 @@ exports.page.home = function(req, res) {
 		var boardId = req.params.board;
 		var html = "";
 		Board.findById(boardId, function(err, board) {
+			var privacy = board.boardType;
 			html += "\
+			<a href='/board/"+board._id+"'>< Back To Board</a>\
+			<form action='"+req.path+"' method='POST'>\
+				<select name='privacy'>\
+					<option value='0' "+(privacy == 0 ? "selected" : "")+">Public</option>\
+					<option value='1' "+(privacy == 1 ? "selected" : "")+">Private</option>\
+					<option value='2' disabled>Public to Organization</option>\
+				</select>\
+				<input type='submit' name='editprivacy' value='Change Privacy' />\
+			</form>\
 			<form action='"+req.path+"' method='POST'>\
 				<input type='submit' name='delete' value='Delete Board' />\
 			</form>\
@@ -501,12 +696,23 @@ exports.page.home = function(req, res) {
 		if(requiresLogin(req, res)) return;
 		
 		var boardId = req.params.board;
-		if(req.body.delete) {
-			Board.findById(boardId, function(err, board) {
+		Board.findById(boardId, function(err, board) {
+			if(req.body.delete) {
 				board.remove();
 				getAfterPost("home", req, res, { type:"success", message:"Board Successfully Deleted." });
-			});
-		}
+			}
+			else if(req.body.editprivacy) {
+				var privacy = req.body.privacy;
+				if(privacy != 0 && privacy != 1) {
+					getAfterPost("boardSettings", req, res, { type:"error", message:"Board type isn't valid." });
+				} else {
+					board.boardType = privacy;
+					board.save(function(board){
+						getAfterPost("boardSettings", req, res, { type:"success", message:"Privacy successfully changed." });
+					});
+				}
+			}
+		});
 	};
 
 	exports.page.createBoard = function(req, res) {
@@ -593,16 +799,20 @@ exports.page.home = function(req, res) {
 		var html = "";
 		Organization.findById(orgId, function(err, org) {
 			if(org) {
-				html += "<p><b>Created:</b> "+dateFormat(org.creationDate)+"</p>";
-				html += "<h2>Users on the board</h2>\
-				<ul>";
-				for(var i = 0; i < org.users.length; i++)
-				{ var user = org.users[i];
-					html += util.format("<li><a href='%s'>%s</a> (<b>Access:</b> %s)</li>", "#", user.playerID, user.access);
-				}
-				html += "</ul>";
-				html += "<a style='float:right;' href='/organization/"+orgId+"/settings'>Edit Settings</a>";
-				writePage(res, pageBuilder.buildPage(html, org.name, req, res, res.submitMessage ));
+				var usersIDs = [];
+				for(var i = 0; i < org.users.length; i++) { usersIDs.push(org.users[i].userID); }
+				User.findUsersById(usersIDs, function(err, users) {
+					html += "<p><b>Created:</b> "+dateFormat(org.creationDate)+"</p>";
+					html += "<h2>Users on the board</h2>\
+					<ul>";
+					for(var i = 0; i < org.users.length; i++)
+					{ var orguser = org.users[i], id = orguser.userID, user = users[id];
+						html += util.format("<li><a href='/user/%s'>%s</a> (<b>Access:</b> %s)</li>", user.username, user.displayName, orguser.access);
+					}
+					html += "</ul>";
+					html += "<a style='float:right;' href='/organization/"+orgId+"/settings'>Edit Settings</a>";
+					writePage(res, pageBuilder.buildPage(html, org.name, req, res, res.submitMessage ));
+				});
 			} else {
 				exports.page.page404(req, res);
 			}
@@ -964,6 +1174,9 @@ exports.page.home = function(req, res) {
 		}
 	}
 
+	function getGravatar(email, size) {
+		return "http://www.gravatar.com/avatar/"+md5(email)+"?s="+size+"&d=identicon";
+	}
 	function md5(str) {
 		return require('crypto').createHash('md5').update(str).digest('hex');
 	}

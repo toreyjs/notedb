@@ -20,6 +20,23 @@ Schema.statics.findByUsername = function(username, callback) {
 };
 
 // http://mongoosejs.com/docs/guide.html#statics
+Schema.statics.findUsersById = function(ids, callback) {
+	var users = {};
+	findNextUser(0);
+
+	function findNextUser(i) {
+		var id = ids[i];
+		if(i < ids.length) {
+			Model.findById(ids[i], function(err, user) {
+				users[id] = user;
+				findNextUser(i+1);
+			});
+		}
+		else { callback(undefined, users); }
+	}
+};
+
+// http://mongoosejs.com/docs/guide.html#statics
 Schema.statics.listStaff = function(callback) {
 	return Model.find({ access: 2 }, callback);
 };
