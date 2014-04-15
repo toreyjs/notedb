@@ -91,7 +91,9 @@ exports.page.home = function(req, res) {
 
 	function orgBoards() {
 		Organization.findByUser(req.session.user._id, function(err, orgs) {
-			html += "<h2>Organizations</h2>";
+			html += "<h2>Organizations</h2>\
+				<p>Boards in organizations can always be viewed, but cannot be edited until your added onto the board.</p>\
+			";
 			if(orgs.length == 0) {
 				html += "<p>You currently belong to no organizations. [<a href='/createorganization'>Create one</a>]</p>";
 				steps.nextStep();
@@ -278,18 +280,23 @@ exports.page.home = function(req, res) {
 		var boardId = req.params.board;
 		var html = "";
 		Board.findById(boardId, function(err, board) {
-			if(!board) { exports.page.page404(req, res); return; }
+		  if(!board) { exports.page.page404(req, res); return; }
 
-			if(board.boardType != 0/*Not public*/) {
+		  Organization.findById(board.organizationID, function(err, organization) {
+		  	if(board.boardType != 0/*Not public*/) {
 				if(requiresLogin(req, res)) return;
+
+				// If board is private and user's not on board, don't allow them to view
+				if(!board.containsUser(req.session.user._id)) {
+					// They ARE allowed to view it however if they are part of the board's organization (if applicable)
+					if(organization) {
+						if(!organization.containsUser(req.session.user._id)) { exports.page.page403(req, res); return; }
+					} else {
+						exports.page.page403(req, res); return;
+					}
+				}
 			}
-			// ###############################################################TODO: check if user on board / in an organization
-			// If user cannot access board, print out error message and jump out of thread (OR just don't allow edit if public).
-			var canEdit = (req.session.user ? true : false);
-			if(false) {
-
-			}// Else just continue
-
+			var canEdit = (req.session.user && board.containsUser(req.session.user._id));
 
 			if(req.query.get) {
 				if(req.query.get == "window" && (cardID = req.query.card)) {
@@ -384,8 +391,8 @@ exports.page.home = function(req, res) {
 								{ var comment = card.comments[i], user = commentUsers[comment.userID];
 									html += "\
 									<div class='comment'>\
-										<a href='/user/"+user.username+"' class='imagelink'>\
-											<img class='comment-avatar' src='"+getGravatar(user.email, 30)+"' />\
+										<a class='comment-avatar imagelink' href='/user/"+user.username+"'>\
+											<img src='"+getGravatar(user.email, 30)+"' />\
 										</a>\
 										<div class='comment-wrapper'>\
 											<a class='comment-user' href='/user/"+user.username+"'>"+user.displayName+"</a>\
@@ -416,92 +423,130 @@ exports.page.home = function(req, res) {
 				}
 				else { writePage(res, "You messed something up! (404)"); }
 			} else {
-				html += "\
-				<div id='board'>\
-					<div class='content'>";
+				var boardUsers = {};
+				var steps = makeSteps(getBoardUsers, finish);
+				steps.nextStep();
 
-					for(var s = 0; s < board.sections.length; s++) { var section = board.sections[s];
-						var sectionDropdown = "";
-						if(canEdit) {
-							sectionDropdown = "\
-							<span class='dropdownmenu'>\
-								<span class='drop'></span>\
-								<div class='menu'>\
-									<form action='"+req.path+"' method='POST'>\
-										<input name='section' type='hidden' value='"+s+"' />\
-										<input name='deletesection' type='submit' value='Delete Section' />\
-									</form>\
-								</div>\
-							</span>";
-						}
+				function getBoardUsers() {
+					var ids = [];
+					for (var i = 0; i < board.users.length; i++) {
+						ids.push(board.users[i].userID);
+					}
+					User.findUsersById(ids, function(err, users) {
+						boardUsers = users;
+						steps.nextStep();
+					});
+				}
 
-						html += "\
-						<section>\
-							<h2 class='sectionheader "+(canEdit ? "editable" : "")+"' data-section='"+s+"'>"+section.title+"</h2> \
-							"+sectionDropdown+"\
-							<div class='cards'>\
-						";
+				function finish() {
+					html += "\
+					<div id='board'>\
+						<div class='content'>";
 
-						for(var n = 0; n < section.cards.length; n++) { var card = section.cards[n];
-							var cardDropdown = "";
+						for(var s = 0; s < board.sections.length; s++) { var section = board.sections[s];
+							var sectionDropdown = "";
 							if(canEdit) {
-								cardDropdown = "\
-								<span class='dropdownmenu' style='float:right;'>\
+								sectionDropdown = "\
+								<span class='dropdownmenu'>\
 									<span class='drop'></span>\
 									<div class='menu'>\
 										<form action='"+req.path+"' method='POST'>\
 											<input name='section' type='hidden' value='"+s+"' />\
-											<input name='card' type='hidden' value='"+n+"' />\
-											<input name='deletecard' type='submit' value='Delete Card' />\
+											<input name='deletesection' type='submit' value='Delete Section' />\
 										</form>\
 									</div>\
 								</span>";
 							}
 
 							html += "\
-								<div id='"+card._id+"' class='card'>\
-									"+cardDropdown+"\
-									"+card.title+"\
-								</div>";
+							<section>\
+								<h2 class='sectionheader "+(canEdit ? "editable" : "")+"' data-section='"+s+"'>"+section.title+"</h2> \
+								"+sectionDropdown+"\
+								<div class='cards'>\
+									<div class='cards-inner'>\
+							";
+
+							for(var n = 0; n < section.cards.length; n++) { var card = section.cards[n];
+								var cardDropdown = "";
+								if(canEdit) {
+									cardDropdown = "\
+										<span class='dropdownmenu' style='float:right;'>\
+											<span class='drop'></span>\
+											<div class='menu'>\
+												<form action='"+req.path+"' method='POST'>\
+													<input name='section' type='hidden' value='"+s+"' />\
+													<input name='card' type='hidden' value='"+n+"' />\
+													<input name='deletecard' type='submit' value='Delete Card' />\
+												</form>\
+											</div>\
+										</span>";
+								}
+
+								html += "\
+										<div id='"+card._id+"' class='card'>\
+											"+cardDropdown+"\
+											"+card.title+"\
+										</div>";
+							}
+							if(canEdit) {
+								html += "\
+										<div class='newcard'>\
+											<form action='"+req.path+"' method='POST'>\
+												<input name='section' type='hidden' value='"+s+"' />\
+												<input name='title' type='text' placeholder='New Card Title' required /><br />\
+												<input name='description' type='text' placeholder='Description' required /><br />\
+												<input name='addcard' type='submit' value='Add Card' />\
+											</form>\
+										</div>\
+								";
+							}
+							html += "\
+									<!--<div class='clear'></div>-->\
+									</div><!--End .cards-inner-->\
+								</div><!--End .cards-->\
+							</section>\
+							";
 						}
 						if(canEdit) {
 							html += "\
-								<div class='newcard'>\
-									<form action='"+req.path+"' method='POST'>\
-										<input name='section' type='hidden' value='"+s+"' />\
-										<input name='title' type='text' placeholder='New Card Title' required /><br />\
-										<input name='description' type='text' placeholder='Description' required /><br />\
-										<input name='addcard' type='submit' value='Add Card' />\
-									</form>\
-								</div>\
+							<section>\
+								<form action='"+req.path+"' method='POST'>\
+									<input name='title' type='text' placeholder='New Section Title' required />\
+									<input name='addsection' type='submit' value='Add Section' />\
+								</form>\
+							</section>\
 							";
 						}
 						html += "\
-								<div class='clear'></div>\
+						</div><!--End .content-->\
+						<aside>\
+							<p><b>Created:</b> "+dateFormat(board.creationDate)+"</p>\
+							<div id='boardUsers'>\
+								<h3>Board Users</h3>";
+								forEachInAssoc(boardUsers, function(user) {
+									html += "\
+									<a class='imagelink' href='/user/"+user.username+"'>\
+										<img src='"+getGravatar(user.email, 50)+"' style='border-radius:5px;' />\
+									</a>\
+									";
+								});
+								if(canEdit) {
+									html += "\
+									<span id='addUserToBoard-container'>\
+										<a id='addUserToBoard'>Add<br />User</a>\
+									</span>\
+									";
+								}
+								html += "\
 							</div>\
-						</section>\
+							"+(canEdit ? "<div id='boardSettingsLinkContainer'><a href='/board/"+boardId+"/settings'>Edit Settings</a></div>" : "")+"\
+						</aside>\
 						";
-					}
-					if(canEdit) {
-						html += "\
-						<section>\
-							<form action='"+req.path+"' method='POST'>\
-								<input name='title' type='text' placeholder='New Section Title' required />\
-								<input name='addsection' type='submit' value='Add Section' />\
-							</form>\
-						</section>\
-						";
-					}
-					html += "\
-					</div><!--End .content-->\
-					<aside>\
-						<p><b>Created:</b> "+dateFormat(board.creationDate)+"</p>\
-						<a href='/board/"+boardId+"/settings'>Edit Settings</a>\
-					</aside>\
-					";
-				html += "</div><!--End #board-->";
-				writePage(res, pageBuilder.buildPage(html, board.boardName, req, res, res.submitMessage ));
+					html += "</div><!--End #board-->";
+					writePage(res, pageBuilder.buildPage(html, board.boardName, req, res, res.submitMessage ));
+				}
 			}
+		  });
 		});
 	};
 
@@ -521,7 +566,21 @@ exports.page.home = function(req, res) {
 
 					}// Else just continue
 
-					if(req.body.addsection) {
+					if(req.body.addUserToBoard) {
+						var username = req.body.username;
+
+						User.findByUsername(username, function(err, user) {
+							if(user) {
+								board.users.push({ userID:user._id, access:1 });
+								board.save(function(err, board) {
+									finish("User Added to Board Successfully");
+								});
+							} else {
+								finish({ type:"error", message:"No user by the username <i>"+username+"</i> exists. Are you sure you entered thier username and not thier display name?" });
+							}
+						});
+					}
+					else if(req.body.addsection) {
 						var title = req.body.title;
 
 						board.sections.push({ title:title });
@@ -762,22 +821,44 @@ exports.page.home = function(req, res) {
 		if(requiresLogin(req, res)) return;
 
 		var boardName = req.body.boardName;
-		var organization = req.body.organization;
+		var organizationID = req.body.organization;
 		var privacy = req.body.privacy;
 
 		var message = "";
 		var addError = function(msg) { message += ( message === "" ? msg : "<br />"+msg ) };
 
-		if(boardName.length < 6 || boardName.length > 128) addError("Board Name must be between 6-128 characters long.");
+		var steps = makeSteps(normalChecks, checkOrganization, finish);
+		steps.nextStep();
 
-		if(privacy != 0 && privacy != 1) addError("Board type isn't valid.");
+		function normalChecks() {
+			if(boardName.length < 6 || boardName.length > 128) addError("Board Name must be between 6-128 characters long.");
+			if(privacy != 0 && privacy != 1) addError("Board type isn't valid.");
+			steps.nextStep();
+		}
 
-		if(organization == -1) {}//ignore
-		//else confirm if the user is allowed to add the board to that organization
+		function checkOrganization() {
+			if(organizationID == -1) { /*Skip step - no organization selected*/ steps.nextStep(); }
+			else {
+				//confirm if the user is allowed to add the board to that organization
+				//TODO - ##################################################################################### Actually check this ^ and if it exists
+				if(false) {
+					addError("You don't belong on this board.");
+					steps.nextStep();
+				}
+				else {
+					steps.nextStep();
+				}
+			}
+		}
 
-		if(message === "") {
-			var newboard = new Board({ boardName: boardName, boardType: privacy });
-			newboard.addUser(req.session.user.username, 3, function(err, newboard) {
+		function finish() {
+			if(message === "") {
+				var user = req.session.user;
+
+				var newboard = new Board({ boardName: boardName, boardType: privacy });
+				if(organizationID != -1) newboard.organizationID = organizationID;
+				newboard.users.push({ userID:user._id, access:3 });
+
 				newboard.save(function (err, newboard) {
 					if (err) addError(err.message);
 					var submitMessage = ( message === ""
@@ -786,9 +867,9 @@ exports.page.home = function(req, res) {
 					);
 					getAfterPost('createBoard', req, res, submitMessage);
 				});
-			});
-		} else {
-			getAfterPost('createBoard', req, res, { type:"error", message:message });
+			} else {
+				getAfterPost('createBoard', req, res, { type:"error", message:message });
+			}
 		}
 	};
 //}END Boards
@@ -799,22 +880,71 @@ exports.page.home = function(req, res) {
 		var html = "";
 		Organization.findById(orgId, function(err, org) {
 			if(org) {
+				//TODO ##################################################### same as board - check fi public private viewing, and only editable if logged in and in organization
+				var canEdit = (req.session.user ? true : false);
+
 				var usersIDs = [];
 				for(var i = 0; i < org.users.length; i++) { usersIDs.push(org.users[i].userID); }
 				User.findUsersById(usersIDs, function(err, users) {
 					html += "<p><b>Created:</b> "+dateFormat(org.creationDate)+"</p>";
-					html += "<h2>Users on the board</h2>\
+					html += "<h2>Users in the organization</h2>\
 					<ul>";
 					for(var i = 0; i < org.users.length; i++)
 					{ var orguser = org.users[i], id = orguser.userID, user = users[id];
 						html += util.format("<li><a href='/user/%s'>%s</a> (<b>Access:</b> %s)</li>", user.username, user.displayName, orguser.access);
 					}
 					html += "</ul>";
-					html += "<a style='float:right;' href='/organization/"+orgId+"/settings'>Edit Settings</a>";
+					if(canEdit) {
+						html += "\
+						<form method='POST' action='"+req.path+"'>\
+							<label for='username'>Add User:</label>\
+							<input type='text' name='username' placeholder='Username' />\
+							<input type='submit' name='addUserToOrganization' value='Add' />\
+							<p>Note: This must be thier username, not thier display name.</p>\
+						</form>\
+						";
+						html += "<a style='float:right;' href='/organization/"+orgId+"/settings'>Edit Settings</a>";
+					}
 					writePage(res, pageBuilder.buildPage(html, org.name, req, res, res.submitMessage ));
 				});
 			} else {
 				exports.page.page404(req, res);
+			}
+		});
+	};
+
+	exports.action.organization = function(req, res) {
+		if(requiresLogin(req, res)) return;
+
+		var orgId = req.params.organization;
+		Organization.findById(orgId, function(err, organization) {
+			if(!organization) { exports.page.page404(req, res); }
+			else {
+				// ###############################################################TODO: check if user on board / in an organization
+				// If user cannot access board, print out error message and jump out of thread.
+				if(false) {
+
+				}// Else just continue
+
+				if(req.body.addUserToOrganization) {
+					var username = req.body.username;
+
+					User.findByUsername(username, function(err, user) {
+						if(user) {
+							organization.users.push({ userID:user._id, access:1 });
+							organization.save(function(err, organization) {
+								finish("User Added to Organization Successfully");
+							});
+						} else {
+							finish({ type:"error", message:"No user by the username <i>"+username+"</i> exists. Are you sure you entered thier username and not thier display name?" });
+						}
+					});
+				}
+			}
+
+			function finish(msg) {
+				var message = (msg.type == "error" ? msg : { type:"success", message:msg })
+				getAfterPost("organization", req, res, message);
 			}
 		});
 	};
@@ -840,6 +970,7 @@ exports.page.home = function(req, res) {
 		var orgId = req.params.organization;
 		if(req.body.delete) {
 			Organization.findById(orgId, function(err, org) {
+				//TODO ##################################################################################### also remove organizationID from boards (leave board)
 				org.remove();
 				getAfterPost("home", req, res, { type:"success", message:"Organization Successfully Deleted." });
 			});
@@ -877,13 +1008,15 @@ exports.page.home = function(req, res) {
 		if(privacy != 0 && privacy != 1) addError("Organization type isn't valid.");
 
 		if(message === "") {
+			var user = req.session.user;
+
 			var neworg = new Organization({ name: name, type: privacy });
-			neworg.addUser(req.session.user.username, 3, function(err, neworg) {
-				neworg.save(function (err, neworg) {
-					if (err) addError(err.message);
-					var submitMessage = ( message === "" ? { type:"success", message:"Organization Created. (<a href='organization/"+neworg._id+"'>view it now</a>)" } : { type:"error", message:message } );
-					getAfterPost('createOrganization', req, res, submitMessage);
-				});
+			neworg.users.push({ userID:user._id, access:2 });
+
+			neworg.save(function (err, neworg) {
+				if (err) addError(err.message);
+				var submitMessage = ( message === "" ? { type:"success", message:"Organization Created. (<a href='organization/"+neworg._id+"'>view it now</a>)" } : { type:"error", message:message } );
+				getAfterPost('createOrganization', req, res, submitMessage);
 			});
 		} else {
 			getAfterPost('createOrganization', req, res, { type:"error", message:message });
@@ -1186,5 +1319,10 @@ exports.page.home = function(req, res) {
 		"Apr.", "May", "Jun.", "Jul.", "Aug.", "Sep.", 
 		"Oct.", "Nov.", "Dec.");
 		return util.format("%s %s, %s", m_names[date.getMonth()], date.getDate(), (date.getFullYear()+"").substr(2, 2));
+	}
+
+	/* Callback returns: Value, Key */
+	function forEachInAssoc(array, callback) {
+		for(var key in array) { callback(array[key], key); }
 	}
 //}END Helper Functions

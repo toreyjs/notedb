@@ -27,7 +27,7 @@ module.exports = function(app, handles) {
 	both(app,	'/user/:username/settings', handles.page.userSettings, handles.action.userSettings);
 	both(app,	'/board/:board', handles.page.board, handles.action.board);
 	both(app,	'/board/:board/settings', handles.page.boardSettings, handles.action.boardSettings);
-	app.get(	'/organization/:organization', handles.page.organization);
+	both(app,	'/organization/:organization', handles.page.organization, handles.action.organization);
 	both(app,	'/organization/:organization/settings', handles.page.organizationSettings, handles.action.organizationSettings);
 
 	both(app,	'*', handles.page.page404, handles.action.page404);

@@ -15,7 +15,7 @@ function getHeader(title, req, message) {
 	</head>\
 	<body>\
 		<div id='overlay'></div>\
-		<header>\
+		<header id='pageheader'>\
 			"+getUserbox(req)+"\
 			<a href='"+req.path+"'><h1>"+title+"</h1></a>\
 			<nav>"+getNav()+"</nav>\
@@ -30,7 +30,7 @@ function getFooter() {
 	var html = "\
 			<div class='clear'></div>\
 		</div><!-- end #content -->\
-		<footer>\
+		<footer id='pagefooter'>\
 			Torey Scheer &copy; 2014 \
 			<span style='float:right;'><a href='https://github.com/toreyjs/notedb' target='_blank'>View code on Github</a></span>\
 		</footer>\

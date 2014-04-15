@@ -19,11 +19,11 @@
 
 var board = $$("#board");
 var overlay = $$("#overlay");
-var messageDiv = $$("#message");
 
 (function init() {
 	window.addEventListener('resize', windowResized);
 	windowResized();
+
 	overlay.addEventListener("click", function(e) { if(e.target.id == "overlay") { removeOverlay(); } } );
 
 	// var loginlink = $$("#loginlink");
@@ -38,6 +38,29 @@ var messageDiv = $$("#message");
 	// }
 
 	if(board) {
+		var addUserToBoard = $$("#addUserToBoard");
+		if(addUserToBoard) {
+			addUserToBoard.addEventListener("click", function(){
+				var container = addUserToBoard.parentElement;
+
+				container.innerHTML = "\
+				<form method='POST' action='"+document.location.href+"'>\
+					<input type='text' name='username' placeholder='Username' />\
+					<input type='submit' name='addUserToBoard' value='Add' />\
+					<p>Note: This must be thier username, not thier display name.</p>\
+				</form>\
+				";
+			});
+		}
+
+		forEach($$A(".cards-inner"), function(inner) {
+			var elementwidths = 0;
+			forEach(inner.children, function(child) {
+				elementwidths += child.offsetWidth;
+			});
+			inner.style.width = (elementwidths+3/*So zoom doesn't **** it up as often*/)+"px";
+		});
+
 		// Clicking Cards
 		forEach($$A(".card"), function(card) {
 			card.addEventListener("click", function(e) {
@@ -86,8 +109,7 @@ var messageDiv = $$("#message");
 								var card = $$("#cardID").value;
 								$.post(document.location.href, { card:card, attachselftocard: "attach" }, function(data) {
 									removeOverlay();
-									messageDiv.innerHTML = "";
-									newElement("div", { className:"success", innerHTML:data }, messageDiv);
+									printMessage(SUCCESS, data);
 								})
 								.fail(function(jqXHR, textStatus, errorThrown){ wndw.innerHTML = errorThrown; });
 							});
@@ -100,32 +122,33 @@ var messageDiv = $$("#message");
 								var user = removeattacheduser.parentElement.dataset.user;
 								$.post(document.location.href, { card:card, user:user, removeattacheduser: "remove" }, function(data) {
 									removeOverlay();
-									messageDiv.innerHTML = "";
-									newElement("div", { className:"success", innerHTML:data }, messageDiv);
+									printMessage(SUCCESS, data);
 								})
 								.fail(function(jqXHR, textStatus, errorThrown){ wndw.innerHTML = errorThrown; });
 							});
 						}
 
-						var editcardpriority = $$(".editcardpriority");
+						var editcardpriority = $$A(".editcardpriority");
 						if(editcardpriority) {
-							editcardpriority.addEventListener("click", function(){
-								var priority = editcardpriority.parentElement;
-								var pInt = priority.dataset.priority;
-								var card = priority.dataset.card;
+							forEach(editcardpriority, function(cardPriority) {
+								cardPriority.addEventListener("click", function(){
+									var priority = cardPriority.parentElement;
+									var pInt = priority.dataset.priority;
+									var card = priority.dataset.card;
 
-								priority.innerHTML = "\
-								<form method='POST' action='"+document.location.href+"'>\
-									<input type='hidden' name='card' value='"+card+"' />\
-									<select name='priority'>\
-										<option value='0' "+(pInt == 0 ? "selected" : "")+">[None]</option>\
-										<option value='1' "+(pInt == 1 ? "selected" : "")+">Low</option>\
-										<option value='2' "+(pInt == 2 ? "selected" : "")+">Medium</option>\
-										<option value='3' "+(pInt == 3 ? "selected" : "")+">High</option>\
-									</select>\
-									<input type='submit' name='editcardpriority' value='Save Title' />\
-								</form>\
-								";
+									priority.innerHTML = "\
+									<form method='POST' action='"+document.location.href+"'>\
+										<input type='hidden' name='card' value='"+card+"' />\
+										<select name='priority'>\
+											<option value='0' "+(pInt == 0 ? "selected" : "")+">[None]</option>\
+											<option value='1' "+(pInt == 1 ? "selected" : "")+">Low</option>\
+											<option value='2' "+(pInt == 2 ? "selected" : "")+">Medium</option>\
+											<option value='3' "+(pInt == 3 ? "selected" : "")+">High</option>\
+										</select>\
+										<input type='submit' name='editcardpriority' value='Save Title' />\
+									</form>\
+									";
+								});
 							});
 						}
 					})
@@ -156,7 +179,7 @@ var messageDiv = $$("#message");
 
 function windowResized(e) {
 	if(board) {
-		var footer = $$("body>footer");
+		var footer = $$("#pagefooter");
 		board.style.height = (window.innerHeight - board.offsetTop - footer.offsetHeight - 6/*margin between #content and footer*/)+"px";
 	}
 }
@@ -167,3 +190,10 @@ function newWindow(innerHTML) {
 	return newElement("div", { className:"window", innerHTML:innerHTML }, overlay);
 }
 function removeOverlay(e) { overlay.style.display = "none"; }
+
+var messageDiv = $$("#message"), SUCCESS = "success", FAIL = "fail";
+function printMessage(type, message) {
+	messageDiv.innerHTML = "";
+	newElement("div", { className:type, innerHTML:message }, messageDiv);
+	windowResized();
+}

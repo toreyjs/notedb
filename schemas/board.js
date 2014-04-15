@@ -6,7 +6,7 @@ Schema = new mongoose.Schema({
 	boardName	: { type: String, required: true },
 	boardType	: { type:Number, required: true, 'default': 0 }, /* 0:public, 1:private, 2:viewable by organization members */
 	users		: [{
-		playerID: { type: mongoose.Schema.ObjectId, required: true },
+		userID	: { type: mongoose.Schema.ObjectId, required: true },
 		access	: { type: Number, required: true, 'default': 0 }, /* 0:none (viewing), 1:normal (editing), 2:admin (can add users, etc), 3:bureaucrat (add users, admins, and other bereaucrats [creater of board is automatically this])  */
 		joinDate: { type: Date, 'default': Date.now }
 	}],
@@ -40,15 +40,6 @@ Schema = new mongoose.Schema({
 	}, callback);
 };*/
 
-Schema.methods.addUser = function(username, access, callback) {
-	var self = this;
-	User.findByUsername(username, function(err, user) {
-		if(err) { if(callback) callback(err); return; }
-		self.users.push({ playerID:user._id, access:access });
-		if(callback) callback(undefined, self);
-	});
-};
-
 Schema.methods.findCard = function(cardID, callback) {
 	for(var s = 0; s < this.sections.length; s++) {
 		for (var c = 0; c < this.sections[s].cards.length; c++) {
@@ -62,15 +53,27 @@ Schema.methods.findCard = function(cardID, callback) {
 	callback();
 };
 
+Schema.methods.containsUser = function(userID) {
+	var contains = false;
+	for(var key in this.users) {
+		var user = this.users[key];
+		if(user.userID == userID) {
+			contains = true;
+			break;
+		}
+	}
+	return contains;
+}
+
 Schema.statics.findByOrganization = function(organizationID, callback) {
 	return Model.find({ organizationID: organizationID }, callback);
 };
 
-Schema.statics.findByUser = function(playerID, callback) {
-	//return Model.find({}, callback).elemMatch("users", { playerID: playerID });
-	var query = Model.find({}).elemMatch("users", { playerID: playerID });
+Schema.statics.findByUser = function(userID, callback) {
+	//return Model.find({}, callback).elemMatch("users", { userID: userID });
+	var query = Model.find({}).elemMatch("users", { userID: userID });
 	query.exec(callback);
-	//return Model.find({ users: { $all: [{ "$elemMatch" : { playerID: playerID } }] } }, callback);
+	//return Model.find({ users: { $all: [{ "$elemMatch" : { userID: userID } }] } }, callback);
 };
 
 Model = mongoose.model('Board', Schema);

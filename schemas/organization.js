@@ -7,7 +7,7 @@ Schema = new mongoose.Schema({
 	type		: { type:Number, required: true, 'default': 0 }, /* 0:public, 1:private */
 	users		: [{
 		userID: { type: mongoose.Schema.ObjectId, required: true },
-		access	: { type: Number, required: true, 'default': 0 }, /* 0:none (viewing), 1:normal (editing), 2:admin (can add users, etc), 3:bureaucrat (add users, admins, and other bereaucrats [creater of board is automatically this])  */
+		access	: { type: Number, required: true, 'default': 0 }, /* 0:normal (viewing), 1:admin (can add users, etc), 2:bureaucrat (add users, admins, and other bereaucrats [creater of board is automatically this])  */
 		joinDate: { type: Date, 'default': Date.now }
 	}],
 	creationDate: { type: Date, 'default': Date.now }
@@ -22,14 +22,17 @@ Schema = new mongoose.Schema({
 	}, callback);
 };*/
 
-Schema.methods.addUser = function(username, access, callback) {
-	var self = this;
-	User.findByUsername(username, function(err, user) {
-		if(err) { if(callback) callback(err); return; }
-		self.users.push({ userID:user._id, access:access });
-		if(callback) callback(undefined, self);
-	});
-};
+Schema.methods.containsUser = function(userID) {
+	var contains = false;
+	for(var key in this.users) {
+		var user = this.users[key];
+		if(user.userID == userID) {
+			contains = true;
+			break;
+		}
+	}
+	return contains;
+}
 
 Schema.statics.findByUser = function(userID, callback) {
 	var query = Model.find({}).elemMatch("users", { userID: userID });

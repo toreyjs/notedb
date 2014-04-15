@@ -1,10 +1,28 @@
 * { font-size:14px; color:#888; }
 html, body { margin:0; background:#000; }
+/*
 a:not(.imagelink) { position:relative; background:transparent; color: #FFF; -moz-transition: color, text-shadow, top .5s; cursor:pointer; }
 a:not(.imagelink):hover { color: #EEE; text-shadow: 0 0 8px rgba(255,255,255,.6); top:-1px; -moz-transition: color, text-shadow, top 1s; text-decoration:none; }
+*/
+a {
+	display: inline-block;
+	cursor:pointer;
+	color: #FFF;
+	transition: color, text-shadow .5s;
+
+	&:hover {
+		text-decoration:none;
+		color: #EEE;
+		text-shadow: 0 0 5px rgba(255,255,255,.6);
+		outline: #FFF solid 1px;
+		outline-offset: 2px;
+		transition: color, text-shadow 1s;
+	}
+	&.imagelink { text-decoration:none; line-height:0; }
+}
 .clear { clear:both; }
-h2 { font-size:165%; }
-h3 { font-size:145%; border-bottom:1px solid #222; margin:5px 0 0 0; }
+h2 { font-size:165%; margin:5px 0 3px 0; }
+h3 { font-size:145%; border-bottom:1px solid #777; margin:5px 0 3px 0; }
 table { background:#333; }
 table th { font-size:125%; background:#440000; }
 label { font-weight:bold; font-size:120%; }
@@ -22,8 +40,6 @@ option[disabled] { text-decoration:line-through; }
 /*.menu { display:none; }*/
 .menu { white-space:nowrap; display:none; position:absolute; padding:3px 5px; margin-top:1px; background:#666; }
 .drop:hover+.menu, .menu:hover { display:block; }
-
-header .dropdownmenu:hover { position:relative; top:-38px; z-index:2; }
 
 header { position:relative; padding: 3px 5px 15px 35px; margin:7px 7px 2px; background:#444; min-height:50px; border-bottom:3px solid #666; border-radius:0 0 4px 4px; }
 header * { background:transparent; }
@@ -91,13 +107,14 @@ header #userbox img { margin:1px; border:1px solid #000; }
 }
 
 .attached-user {
+	position	: relative;
 	display		: inline-block;
 	text-align	: center;
 
-	.removeattacheduser { display:none; }
+	.removeattacheduser { display:none; position:absolute; top:41px; left:-2px; }
 
 	&:hover {
-		.removeattacheduser { display:inline; }
+		.removeattacheduser { display:inline-block; }
 	}
 }
 
@@ -155,7 +172,7 @@ header #userbox img { margin:1px; border:1px solid #000; }
 	    overflow-y: auto;
 
 	    section {
-			box-sizing: border-box;
+			box-sizing	: border-box;
 			max-width	: 100%;
 			overflow 	: hidden;
 			padding 	: 3px 0;
@@ -180,13 +197,15 @@ header #userbox img { margin:1px; border:1px solid #000; }
 			.cards {
 				box-sizing: border-box;
 				width 		: 100%;
-				height		: 130px;
+				max-height	: 130px;
 				overflow 	: auto;
 				padding 	: 3px 5px;
 				margin-top	: 3px;
 				background	: #222;
 				border 		: 3px solid #777;
 				border-radius: 5px;
+
+				.cards-inner { width:auto; height:100%; overflow:hidden; }
 
 				.card {
 					float		: left;
@@ -225,10 +244,31 @@ header #userbox img { margin:1px; border:1px solid #000; }
 
 	aside {
 		box-sizing	: border-box;
+		position	: relative;
 	    width		: 300px;
 	    padding		: 3px 6px;
 	    background	: #666;
 	    border-radius: 8px 0 0 8px;
+
+	    *:not(a) { color: #AAA; }
+
+	    #addUserToBoard {
+	    	box-sizing	: border-box;
+	    	display		: inline-block;
+	    	width		: 50px;
+	    	height		: 50px;
+	    	padding		: 5px 0;
+	    	vertical-align: top;
+	    	text-align	: center;
+	    	border		: 2px solid #888;
+	    	border-radius: 5px;
+	    }
+
+	    #boardSettingsLinkContainer {
+	    	position:absolute;
+	    	bottom:3px;
+	    	right:2px;
+	    }
 	}
 }
 
