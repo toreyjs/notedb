@@ -5,8 +5,9 @@
   var lessMiddleware = require('less-middleware');
 
   var router = require("./router");
+  var sockets = require("./sockets");
   var requestHandlers = require("./requestHandlers");
-  var config = require('./config.js');
+  var config = require('./config');
 //}END Requires
 
 // (Async) Mongoose runs while the server is running rather than connecting to it multiple times (also prevents race conditions)
@@ -31,6 +32,10 @@ app.use(express.static(__dirname + '/public'));
 app.use(express.cookieParser('JuniperBarriesD4wg'));
 app.use(express.bodyParser());
 app.use(express.session({cookie: { path: '/', httpOnly: true, maxAge: null}, secret:'JuniperBarriesD4wg!'}));
+
+var server = http.createServer(app);
+var io = require('socket.io').listen(server);
+sockets.start(io);
 
 router(app, requestHandlers);
 

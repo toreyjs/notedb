@@ -351,7 +351,7 @@ exports.page.home = function(req, res) {
 									var id = card.users[i].userID, user = attachedUsers[id];
 									html += "\
 									<span class='attached-user' data-user='"+id+"'>\
-										<a href='/user/"+user.username+"' class='imagelink'>\
+										<a class='imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
 											<img src='"+getGravatar(user.email, 40)+"' />\
 										</a>\
 										"+(canEdit ? "<br /><a class='removeattacheduser'>Remove</a>" : "")+"\
@@ -391,7 +391,7 @@ exports.page.home = function(req, res) {
 								{ var comment = card.comments[i], user = commentUsers[comment.userID];
 									html += "\
 									<div class='comment'>\
-										<a class='comment-avatar imagelink' href='/user/"+user.username+"'>\
+										<a class='comment-avatar imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
 											<img src='"+getGravatar(user.email, 30)+"' />\
 										</a>\
 										<div class='comment-wrapper'>\
@@ -525,9 +525,12 @@ exports.page.home = function(req, res) {
 								<h3>Board Users</h3>";
 								forEachInAssoc(boardUsers, function(user) {
 									html += "\
-									<a class='imagelink' href='/user/"+user.username+"'>\
-										<img src='"+getGravatar(user.email, 50)+"' style='border-radius:5px;' />\
-									</a>\
+									<span class='board-user' data-user='"+user._id+"'>\
+										<a class='imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
+											<img src='"+getGravatar(user.email, 50)+"' style='border-radius:5px;' />\
+										</a>\
+										"+(canEdit ? "<br /><a class='removeboarduser'>Remove</a>" : "")+"\
+									</span>\
 									";
 								});
 								if(canEdit) {
@@ -698,12 +701,26 @@ exports.page.home = function(req, res) {
 									card.users[i].remove();
 									board.save(function(err, board) {
 										//finish("You have been unattached from the card <i>"+card.title+"</i>.");
-										writePage(res, "You have been unattached from the card <i>"+card.title+"</i>.");
+										writePage(res, "User has successfully been unattached from the card <i>"+card.title+"</i>.");
 										return;
 									});
 								}
 							}
 						});
+					}
+					else if(req.body.removeboarduser) {
+						var userID = req.body.user;
+
+						for(var i = 0; i < board.users.length; i++) {
+							if(board.users[i].userID == userID) {
+								board.users[i].remove();
+								board.save(function(err, board) {
+									writePage(res, "User has successfully been removed from the board.");
+									return;
+								});
+								break;
+							}
+						}
 					}
 					else if(req.body.deletecomment) {
 						var cardID = req.body.card;

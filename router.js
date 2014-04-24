@@ -14,39 +14,27 @@ http://localhost:8888/start?foo=bar&hello=world
 */
 
 module.exports = function(app, handles) {
+	var a = app, h = handles;
 	app.get(	'/', handles.page.home);
-	both(app,	'/login', handles.page.login, handles.action.login);
+	both(a,h,	'/login', 'login');
 	app.get(	'/logout', handles.action.logout);
-	both(app,	'/newuser', handles.page.newUser, handles.action.newUser);
-	both(app,	'/createboard', handles.page.createBoard, handles.action.createBoard);
-	both(app,	'/createorganization', handles.page.createOrganization, handles.action.createOrganization);
-	both(app,	'/staff/:page', handles.page.staffPage, handles.action.staffPage);
-	both(app,	'/staff', handles.page.staff, handles.action.staff);
+	both(a,h,	'/newuser', 'newUser');
+	both(a,h,	'/createboard', 'createBoard');
+	both(a,h,	'/createorganization', 'createOrganization');
+	both(a,h,	'/staff/:page', 'staffPage');
+	both(a,h,	'/staff', 'staff');
 
 	app.get(	'/user/:username', handles.page.user);
-	both(app,	'/user/:username/settings', handles.page.userSettings, handles.action.userSettings);
-	both(app,	'/board/:board', handles.page.board, handles.action.board);
-	both(app,	'/board/:board/settings', handles.page.boardSettings, handles.action.boardSettings);
-	both(app,	'/organization/:organization', handles.page.organization, handles.action.organization);
-	both(app,	'/organization/:organization/settings', handles.page.organizationSettings, handles.action.organizationSettings);
+	both(a,h,	'/user/:username/settings', 'userSettings');
+	both(a,h,	'/board/:board', 'board');
+	both(a,h,	'/board/:board/settings', 'boardSettings');
+	both(a,h,	'/organization/:organization', 'organization');
+	both(a,h,	'/organization/:organization/settings', 'organizationSettings');
 
-	both(app,	'*', handles.page.page404, handles.action.page404);
+	both(a,h,	'*', 'page404');
 }
 
-function both(app, pathname, get, post) {
-	app.get(pathname, get);
-	app.post(pathname, post);
+function both(app, handles, pathname, name, namePost/*optional*/) {
+	app.get(pathname, handles.page[name]);
+	app.post(pathname, handles.action[(namePost == undefined ? name : namePost)]);
 }
-
-/*function(handle, pathname, response, postData) {
-	console.log("About to route a request for " + pathname);
-	if(typeof handle[pathname] === "function") {
-		handle[pathname](response, postData);
-	}
-	else {
-		console.log("No request handler found for " + pathname);
-		response.writeHead(404, {"Content-Type": "text/plain"});
-		response.write("404 Not found");
-		response.end();
-	}
-}*/

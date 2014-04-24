@@ -1,9 +1,10 @@
 /* Script tag defined at bottom of page, so no onload neccisary */
-//{REGION Helper Methods
+//{REGION Utilities
+	// Uses $$ so it returns a javascript object, not a jquery one.
 	function $$(query) { return document.querySelector(query); }
 	function $$A(query) { return document.querySelectorAll(query); }
 
-	function forEach(collection, callback) { Array.prototype.forEach.call(collection, callback); }
+	function forEach(collection, callback) { if(collection != undefined) { Array.prototype.forEach.call(collection, callback); } }
 
 	// Creates a new HTML element (not jQuery) with specific attributes
 	function newElement(tag, attributes, parent) {
@@ -15,10 +16,17 @@
 		if(parent != undefined) parent.appendChild(element);
 		return element;
 	}
-//}END Helper Methods
+//}END Utilities
 
 var board = $$("#board");
 var overlay = $$("#overlay");
+var socket = io.connect('http://localhost');
+//{REGION Sockets
+	socket.on('news', function (data) {
+		console.log(data);
+		socket.emit('my other event', { my: 'data' });
+	});
+//}END Sockets
 
 (function init() {
 	window.addEventListener('resize', windowResized);
@@ -59,6 +67,20 @@ var overlay = $$("#overlay");
 				elementwidths += child.offsetWidth;
 			});
 			inner.style.width = (elementwidths+3/*So zoom doesn't **** it up as often*/)+"px";
+		});
+
+		forEach($$A(".removeboarduser"), function(removeboarduser) {
+			removeboarduser.addEventListener("click", function(){
+				var parent = removeboarduser.parentElement;
+				var user = parent.dataset.user;
+
+				removeMessage();
+				$.post(document.location.href, { user:user, removeboarduser: "remove" }, function(data) {
+					parent.parentNode.removeChild(parent);
+					printMessage(SUCCESS, data);
+				})
+				.fail(function(jqXHR, textStatus, errorThrown){ printMessage(FAIL, errorThrown); });
+			});
 		});
 
 		// Clicking Cards
@@ -111,22 +133,23 @@ var overlay = $$("#overlay");
 									removeOverlay();
 									printMessage(SUCCESS, data);
 								})
-								.fail(function(jqXHR, textStatus, errorThrown){ wndw.innerHTML = errorThrown; });
+								.fail(function(jqXHR, textStatus, errorThrown){ printMessage(FAIL, errorThrown); });
 							});
 						}
 
-						var removeattacheduser = $$(".removeattacheduser");
-						if(removeattacheduser) {
+						forEach($$A(".removeattacheduser"), function(removeattacheduser) {
 							removeattacheduser.addEventListener("click", function(){
 								var card = $$("#cardID").value;
 								var user = removeattacheduser.parentElement.dataset.user;
+
+								removeMessage();
 								$.post(document.location.href, { card:card, user:user, removeattacheduser: "remove" }, function(data) {
 									removeOverlay();
 									printMessage(SUCCESS, data);
 								})
-								.fail(function(jqXHR, textStatus, errorThrown){ wndw.innerHTML = errorThrown; });
+								.fail(function(jqXHR, textStatus, errorThrown){ printMessage(FAIL, errorThrown); });
 							});
-						}
+						});
 
 						var editcardpriority = $$A(".editcardpriority");
 						if(editcardpriority) {
@@ -152,7 +175,7 @@ var overlay = $$("#overlay");
 							});
 						}
 					})
-					.fail(function(jqXHR, textStatus, errorThrown){ wndw.innerHTML = errorThrown; });
+					.fail(function(jqXHR, textStatus, errorThrown){ printMessage(FAIL, errorThrown); });
 				}
 			});
 		});
@@ -177,23 +200,30 @@ var overlay = $$("#overlay");
 	}
 })();
 
-function windowResized(e) {
-	if(board) {
-		var footer = $$("#pagefooter");
-		board.style.height = (window.innerHeight - board.offsetTop - footer.offsetHeight - 6/*margin between #content and footer*/)+"px";
+
+//{REGION Helper Methods
+	function windowResized(e) {
+		if(board) {
+			var footer = $$("#pagefooter");
+			board.style.height = (window.innerHeight - board.offsetTop - footer.offsetHeight - 6/*margin between #content and footer*/)+"px";
+		}
 	}
-}
 
-function newWindow(innerHTML) {
-	overlay.style.display = "block";
-	overlay.innerHTML = "";
-	return newElement("div", { className:"window", innerHTML:innerHTML }, overlay);
-}
-function removeOverlay(e) { overlay.style.display = "none"; }
+	function newWindow(innerHTML) {
+		overlay.style.display = "block";
+		overlay.innerHTML = "";
+		return newElement("div", { className:"window", innerHTML:innerHTML }, overlay);
+	}
+	function removeOverlay(e) { overlay.style.display = "none"; }
 
-var messageDiv = $$("#message"), SUCCESS = "success", FAIL = "fail";
-function printMessage(type, message) {
-	messageDiv.innerHTML = "";
-	newElement("div", { className:type, innerHTML:message }, messageDiv);
-	windowResized();
-}
+	var messageDiv = $$("#message"), SUCCESS = "success", FAIL = "fail";
+	function printMessage(type, message) {
+		messageDiv.innerHTML = "";
+		newElement("div", { className:type, innerHTML:message }, messageDiv);
+		windowResized();
+	}
+	function removeMessage() {
+		messageDiv.innerHTML = "";
+		windowResized();
+	}
+//}END Helper Methods

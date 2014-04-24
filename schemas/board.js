@@ -55,8 +55,8 @@ Schema.methods.findCard = function(cardID, callback) {
 
 Schema.methods.containsUser = function(userID) {
 	var contains = false;
-	for(var key in this.users) {
-		var user = this.users[key];
+	for(var i = 0; i < this.users.length; i++) {
+		var user = this.users[i];
 		if(user.userID == userID) {
 			contains = true;
 			break;

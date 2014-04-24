@@ -12,6 +12,7 @@ function getHeader(title, req, message) {
 		<title>NoteDB - "+title+"</title>\
 		<link href='/css_js/style.css' rel='stylesheet' />\
 		<script src='http://code.jquery.com/jquery-latest.min.js'></script>\
+		<script src='/socket.io/socket.io.js'></script>\
 	</head>\
 	<body>\
 		<div id='overlay'></div>\
@@ -52,8 +53,9 @@ function getNav() {
 		</div>\
 	</span>\
 	<span class='headerlinkborder'></span>\
-	<a href='/404'>404</a>\
 	<a href='/staff'>Staff Dashboard</a>\
+	<a href='/404'>404</a>\
+	<a href='/other/Syllabus.htm'>Syllabus</a>\
 	";
 	return html;
 }

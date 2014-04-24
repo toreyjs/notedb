@@ -106,15 +106,15 @@ header #userbox img { margin:1px; border:1px solid #000; }
 	}
 }
 
-.attached-user {
+.attached-user, .board-user {
 	position	: relative;
 	display		: inline-block;
 	text-align	: center;
 
-	.removeattacheduser { display:none; position:absolute; top:41px; left:-2px; }
+	.removeattacheduser, .removeboarduser { display:none; position:absolute; top:41px; left:-2px; }
 
 	&:hover {
-		.removeattacheduser { display:inline-block; }
+		.removeattacheduser, .removeboarduser { display:inline-block; }
 	}
 }
 
