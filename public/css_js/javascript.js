@@ -1,8 +1,8 @@
 /* Script tag defined at bottom of page, so no onload neccisary */
 //{REGION Utilities
 	// Uses $$ so it returns a javascript object, not a jquery one.
-	function $$(query) { return document.querySelector(query); }
-	function $$A(query) { return document.querySelectorAll(query); }
+	function $$(query, parent/*optional*/) { return (parent ? parent : document).querySelector(query); }
+	function $$A(query, parent/*optional*/) { return (parent ? parent : document).querySelectorAll(query); }
 
 	function forEach(collection, callback) { if(collection != undefined) { Array.prototype.forEach.call(collection, callback); } }
 
@@ -16,16 +16,24 @@
 		if(parent != undefined) parent.appendChild(element);
 		return element;
 	}
+
+	function removeElem(elem) {
+		elem.parentNode.removeChild(elem);
+	}
+
+	function toggleVisibility(elem) {
+		elem.style.visibility = (elem.style.visibility == 'hidden' ? 'visible' : 'hidden');
+	}
 //}END Utilities
 
 var board = $$("#board");
 var overlay = $$("#overlay");
-var socket = io.connect('http://localhost');
+//var socket = io.connect('http://localhost');
 //{REGION Sockets
-	socket.on('news', function (data) {
-		console.log(data);
-		socket.emit('my other event', { my: 'data' });
-	});
+	// socket.on('news', function (data) {
+	// 	console.log(data);
+	// 	socket.emit('my other event', { my: 'data' });
+	// });
 //}END Sockets
 
 (function init() {
@@ -41,7 +49,7 @@ var socket = io.connect('http://localhost');
 	// 		var wndw = newWindow("Un momento, por favour...");
 	// 		$.get( "/login?get=window", function(data) {
 	// 			wndw.innerHTML = data;
-	// 		}).fail(function(jqXHR, textStatus, errorThrown){ wndw.innerHTML = errorThrown; });
+	// 		}).fail(function(jqXHR){ wndw.innerHTML = jqXHR.responseText; });
 	// 	});
 	// }
 
@@ -49,15 +57,33 @@ var socket = io.connect('http://localhost');
 		var addUserToBoard = $$("#addUserToBoard");
 		if(addUserToBoard) {
 			addUserToBoard.addEventListener("click", function(){
-				var container = addUserToBoard.parentElement;
+				var addUserToBoardContainer = addUserToBoard.parentElement;
 
-				container.innerHTML = "\
-				<form method='POST' action='"+document.location.href+"'>\
-					<input type='text' name='username' placeholder='Username' />\
-					<input type='submit' name='addUserToBoard' value='Add' />\
-					<p>Note: This must be thier username, not thier display name.</p>\
-				</form>\
-				";
+				toggleVisibility(addUserToBoard);
+
+				var form = newElement("form", { method:'POST', action:document.location.href }, addUserToBoardContainer);
+				newElement("input", { type:'text', name:'username', placeholder:'Username' }, form)
+				.focus();
+				//newElement("input", { type:'hidden', name:'addUserToBoard', value:'true' }, form);
+				var submit = newElement("input", { type:'submit', name:'addUserToBoard', value:'Add' }, form);
+				newElement("p", { innerHTML:'Note: This must be thier username, not thier display name.' }, form);
+
+				form.onsubmit = function() {
+					removeMessage();
+					submit.disabled = true;
+					$(getLoadingImg()).insertAfter(submit);
+					$.post(form.action, serializePlusSubmit(form), function(data) {
+						var userData = $(data);
+						userData.insertBefore(addUserToBoardContainer);
+						userData.bind("click", removeboarduserEvent);
+					})
+					.fail(function(jqXHR){ console.log(arguments); printMessage(FAIL, jqXHR.responseText); })
+					.always(function() {
+						removeElem(form);
+						toggleVisibility(addUserToBoard);
+					});
+					return false; // Stops form from auto-submitting so the javascript can handle it.
+				};
 			});
 		}
 
@@ -70,17 +96,7 @@ var socket = io.connect('http://localhost');
 		});
 
 		forEach($$A(".removeboarduser"), function(removeboarduser) {
-			removeboarduser.addEventListener("click", function(){
-				var parent = removeboarduser.parentElement;
-				var user = parent.dataset.user;
-
-				removeMessage();
-				$.post(document.location.href, { user:user, removeboarduser: "remove" }, function(data) {
-					parent.parentNode.removeChild(parent);
-					printMessage(SUCCESS, data);
-				})
-				.fail(function(jqXHR, textStatus, errorThrown){ printMessage(FAIL, errorThrown); });
-			});
+			removeboarduser.addEventListener("click", removeboarduserEvent);
 		});
 
 		// Clicking Cards
@@ -133,7 +149,7 @@ var socket = io.connect('http://localhost');
 									removeOverlay();
 									printMessage(SUCCESS, data);
 								})
-								.fail(function(jqXHR, textStatus, errorThrown){ printMessage(FAIL, errorThrown); });
+								.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
 							});
 						}
 
@@ -147,35 +163,57 @@ var socket = io.connect('http://localhost');
 									removeOverlay();
 									printMessage(SUCCESS, data);
 								})
-								.fail(function(jqXHR, textStatus, errorThrown){ printMessage(FAIL, errorThrown); });
+								.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
 							});
 						});
 
-						var editcardpriority = $$A(".editcardpriority");
+						var editcardpriority = $$(".editcardpriority");
 						if(editcardpriority) {
-							forEach(editcardpriority, function(cardPriority) {
-								cardPriority.addEventListener("click", function(){
-									var priority = cardPriority.parentElement;
-									var pInt = priority.dataset.priority;
-									var card = priority.dataset.card;
+							editcardpriority.addEventListener("click", function(){
+								var priority = editcardpriority.parentElement;
+								var pInt = priority.dataset.priority;
+								var card = priority.dataset.card;
 
-									priority.innerHTML = "\
-									<form method='POST' action='"+document.location.href+"'>\
-										<input type='hidden' name='card' value='"+card+"' />\
-										<select name='priority'>\
-											<option value='0' "+(pInt == 0 ? "selected" : "")+">[None]</option>\
-											<option value='1' "+(pInt == 1 ? "selected" : "")+">Low</option>\
-											<option value='2' "+(pInt == 2 ? "selected" : "")+">Medium</option>\
-											<option value='3' "+(pInt == 3 ? "selected" : "")+">High</option>\
-										</select>\
-										<input type='submit' name='editcardpriority' value='Save Title' />\
-									</form>\
-									";
-								});
+								priority.innerHTML = "\
+								<form method='POST' action='"+document.location.href+"'>\
+									<input type='hidden' name='card' value='"+card+"' />\
+									<select name='priority'>\
+										<option value='0' "+(pInt == 0 ? "selected" : "")+">[None]</option>\
+										<option value='1' "+(pInt == 1 ? "selected" : "")+">Low</option>\
+										<option value='2' "+(pInt == 2 ? "selected" : "")+">Medium</option>\
+										<option value='3' "+(pInt == 3 ? "selected" : "")+">High</option>\
+									</select>\
+									<input type='submit' name='editcardpriority' value='Save Title' />\
+								</form>\
+								";
 							});
 						}
+
+						var newcommentform = $$(".newcomment form");
+						if(newcommentform) {
+							newcommentform.onsubmit = function() {
+								var loading = getLoadingImg(newcommentform);
+								removeMessage();
+
+								$.post(newcommentform.action, serializePlusSubmit(newcommentform), function(data) {
+									var comment = $(data)[0];
+									newcommentform.parentElement.parentElement.appendChild(comment);
+									newcommentform.reset();
+									$$(".comment .comment-wrapper form", comment).onsubmit = deletecommentEvent;
+								})
+								.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); })
+								.always(function() {
+									removeElem(loading);
+								});
+								return false; // Stops form from auto-submitting so the javascript can handle it.
+							}
+						}
+
+						forEach($$A(".comment .comment-wrapper form"), function(form) {
+							form.onsubmit = deletecommentEvent;
+						});
 					})
-					.fail(function(jqXHR, textStatus, errorThrown){ printMessage(FAIL, errorThrown); });
+					.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
 				}
 			});
 		});
@@ -200,6 +238,34 @@ var socket = io.connect('http://localhost');
 	}
 })();
 
+//{REGION Event Handlers
+	function removeboarduserEvent(e){
+		var removeboarduser = e.target;
+		var parent = removeboarduser.parentElement;
+		var user = parent.dataset.user;
+
+		removeMessage();
+		$.post(document.location.href, { user:user, removeboarduser: "remove" }, function(data) {
+			removeElem(parent);
+			printMessage(SUCCESS, data);
+		})
+		.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
+	}
+
+	function deletecommentEvent(e){
+		var form = e.target;
+		getLoadingImg(form);
+		// Why does this kill everything?
+		//$$("[type=submit]", form).disabled = true;
+		removeMessage();
+
+		$.post(form.action, serializePlusSubmit(form), function(data) {
+			removeElem(form.parentElement.parentElement);
+		})
+		.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
+		return false; // Stops form from auto-submitting so the javascript can handle it.
+	}
+//}END Event Handlers
 
 //{REGION Helper Methods
 	function windowResized(e) {
@@ -216,8 +282,13 @@ var socket = io.connect('http://localhost');
 	}
 	function removeOverlay(e) { overlay.style.display = "none"; }
 
-	var messageDiv = $$("#message"), SUCCESS = "success", FAIL = "fail";
+	function getLoadingImg(parent/*optional [appends to parent just like newElement]*/) {
+		return newElement("img", { src:'/images/loading.gif', alt:'Loading...' }, parent);
+	}
+
+	var messageDiv = $$("#message"), SUCCESS = "success", FAIL = "error";
 	function printMessage(type, message) {
+		removeOverlay();
 		messageDiv.innerHTML = "";
 		newElement("div", { className:type, innerHTML:message }, messageDiv);
 		windowResized();
@@ -225,5 +296,15 @@ var socket = io.connect('http://localhost');
 	function removeMessage() {
 		messageDiv.innerHTML = "";
 		windowResized();
+	}
+
+	function serializePlusSubmit(form) {
+		var $form = (form instanceof jQuery ? form : $(form));
+		var text = $form.serialize();
+		var firstSubmit = $form.find("[type=submit]")[0];
+		if(firstSubmit) {
+			text += (text != "" ? "&" : "")+firstSubmit.name+"="+firstSubmit.value;
+		}
+		return text;
 	}
 //}END Helper Methods

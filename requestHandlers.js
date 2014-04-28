@@ -405,12 +405,14 @@ exports.page.home = function(req, res) {
 												<input name='comment' type='hidden' value='"+i+"' />\
 												<input name='deletecomment' type='submit' value='Delete' />\
 											</form>\
-										</div>\
 										";
 									} else {
 										html += dateFormat(comment.creationDate);
 									}
-									html += "</div>";
+									html += "\
+										</div>\
+									</div>\
+									";
 								}
 								if(card.comments.length == 0) { html += "[No comments]"; }
 								html += "</div>\
@@ -574,12 +576,24 @@ exports.page.home = function(req, res) {
 
 						User.findByUsername(username, function(err, user) {
 							if(user) {
-								board.users.push({ userID:user._id, access:1 });
-								board.save(function(err, board) {
-									finish("User Added to Board Successfully");
-								});
+								if(!board.containsUser(user._id)) {
+									board.users.push({ userID:user._id, access:1 });
+									board.save(function(err, board) {
+										var html = "\
+										<span class='board-user' data-user='"+user._id+"'>\
+											<a class='imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
+												<img src='"+getGravatar(user.email, 50)+"' style='border-radius:5px;' />\
+											</a>\
+											<br /><a class='removeboarduser'>Remove</a>\
+										</span>\
+										";
+										sendJSResponse(html);
+									});
+								} else {
+									sendJSFail("User already on board.");
+								}
 							} else {
-								finish({ type:"error", message:"No user by the username <i>"+username+"</i> exists. Are you sure you entered thier username and not thier display name?" });
+								sendJSFail("No user by the username <i>"+username+"</i> exists. Are you sure you entered thier username and not thier display name?");
 							}
 						});
 					}
@@ -614,19 +628,40 @@ exports.page.home = function(req, res) {
 							card.users.push({ userID:userID });
 							board.save(function(err, board) {
 								//finish("You are now attached to the card <i>"+card.title+"</i>.");
-								writePage(res, "You are now attached to the card <i>"+card.title+"</i>.");
+								sendJSResponse("You are now attached to the card <i>"+card.title+"</i>.");
 							});
 						});
 					}
 					else if(req.body.addcomment) {
 						var cardID = req.body.card;
-						var comment = req.body.comment;
+						var commentText = req.body.comment;
 						var userID = req.session.user._id;
 
 						board.findCard(cardID, function(err, card){
-							card.comments.push({ userID:userID, comment:comment });
+							card.comments.push({ userID:userID, comment:commentText });
 							board.save(function(err, board) {
-								finish("Comment Added Successfully");
+								User.findById(userID, function(err, user) {
+									var i = card.comments.length-1;
+									var comment = card.comments[i];
+									var html = "\
+									<div class='comment'>\
+										<a class='comment-avatar imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
+											<img src='"+getGravatar(user.email, 30)+"' />\
+										</a>\
+										<div class='comment-wrapper'>\
+											<a class='comment-user' href='/user/"+user.username+"'>"+user.displayName+"</a>\
+											<div class='comment-text'>"+comment.comment+"</div>\
+											<form action='"+req.path+"' method='POST'>\
+												"+dateFormat(comment.creationDate)+" \
+												<input name='card' type='hidden' value='"+card._id+"' />\
+												<input name='comment' type='hidden' value='"+i+"' />\
+												<input name='deletecomment' type='submit' value='Delete' />\
+											</form>\
+										</div>\
+									</div>\
+									";
+									sendJSResponse(html);
+								});
 							});
 						});
 					}
@@ -701,7 +736,7 @@ exports.page.home = function(req, res) {
 									card.users[i].remove();
 									board.save(function(err, board) {
 										//finish("You have been unattached from the card <i>"+card.title+"</i>.");
-										writePage(res, "User has successfully been unattached from the card <i>"+card.title+"</i>.");
+										sendJSResponse("User has successfully been unattached from the card <i>"+card.title+"</i>.");
 										return;
 									});
 								}
@@ -725,11 +760,10 @@ exports.page.home = function(req, res) {
 					else if(req.body.deletecomment) {
 						var cardID = req.body.card;
 						var commentI = req.body.comment;
-
 						board.findCard(cardID, function(err, card){
 							card.comments[commentI].remove();
 							board.save(function(err, board) {
-								finish("Comment Deleted Successfully");
+								sendJSResponse("Comment Deleted Successfully");
 							});
 						});
 					}
@@ -740,6 +774,14 @@ exports.page.home = function(req, res) {
 		function finish(msg) {
 			var message = (msg.type == "error" ? msg : { type:"success", message:msg })
 			getAfterPost("board", req, res, message);
+		}
+
+		function sendJSResponse(msg) {
+			writePage(res, msg);
+		}
+
+		function sendJSFail(msg) {
+			writePage(res, msg, { code:404 });
 		}
 	};
 
