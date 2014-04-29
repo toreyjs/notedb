@@ -70,8 +70,12 @@ var overlay = $$("#overlay");
 		});
 	}
 
-	addBoardEvents();
+	$(document).ready(jqInit);
 })();
+
+function jqInit() {
+	addBoardEvents();
+}
 
 function addBoardEvents() {
 	if(board) {
