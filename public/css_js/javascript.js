@@ -45,7 +45,7 @@ var overlay = $$("#overlay");
 (function init() {
 	window.addEventListener('resize', windowResized);
 	windowResized();
-
+	
 	overlay.addEventListener("click", function(e) { if(e.target.id == "overlay") { removeOverlay(); } } );
 
 	if(loginlink = $$("#loginlink")) {
@@ -70,12 +70,8 @@ var overlay = $$("#overlay");
 		});
 	}
 
-	$(document).ready(jqInit);
-})();
-
-function jqInit() {
 	addBoardEvents();
-}
+})();
 
 function addBoardEvents() {
 	if(board) {

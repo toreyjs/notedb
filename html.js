@@ -11,7 +11,7 @@ function getHeader(title, req, message) {
 		<meta charset='utf-8' />\
 		<title>NoteDB - "+title+"</title>\
 		<link href='/css_js/style.css' rel='stylesheet' />\
-		<script src='http://code.jquery.com/jquery-latest.min.js'></script>\
+		<script src='//code.jquery.com/jquery-latest.min.js'></script>\
 		<!-- Work via hack here (put in public folder manually): http://impactjs.com/forums/help/yet-another-nodejs-socket-io-impact-thread/page/1#post18363 -->\
 		<script src='/socket.io/socket.io.js'></script>\
 	</head>\
