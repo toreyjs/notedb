@@ -34,12 +34,12 @@
 
 var board = $$("#board");
 var overlay = $$("#overlay");
-var socket = io.connect('http://localhost');
+//var socket = io.connect('http://localhost');
 //{REGION Sockets
-	socket.on('news', function (data) {
-		console.log(data);
-		socket.emit('my other event', { my: 'data' });
-	});
+	// socket.on('news', function (data) {
+	// 	console.log(data);
+	// 	socket.emit('my other event', { my: 'data' });
+	// });
 //}END Sockets
 
 (function init() {
@@ -169,12 +169,11 @@ function addCardEvents(card) {
 						removeMessage();
 
 						$.post(newcommentform.action, serializePlusSubmit(newcommentform), function(data) {
-							if(nocomments = $$(".comments .nocomments")) { removeElem(nocomments); }
-
-							var comment = $(data)[0];
-							newcommentform.parentElement.parentElement.appendChild(comment);
+							$$(".comments-section").innerHTML = data;
 							newcommentform.reset();
-							$$(".comment .comment-wrapper form", comment).onsubmit = deletecommentEvent;
+							forEach($$A(".comment .deletecommentForm"), function(form) {
+								form.onsubmit = deletecommentEvent;
+							});
 						})
 						.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); })
 						.always(function() {
@@ -184,7 +183,7 @@ function addCardEvents(card) {
 					}
 				}
 
-				forEach($$A(".comment .comment-wrapper form"), function(form) {
+				forEach($$A(".comment .deletecommentForm"), function(form) {
 					form.onsubmit = deletecommentEvent;
 				});
 			})
@@ -343,11 +342,10 @@ function addCardEvents(card) {
 		removeMessage();
 
 		$.post(form.action, serializePlusSubmit(form), function(data) {
-			removeElem(form.parentElement.parentElement);
-			var comments = $$A(".comments .comment");
-			if(comments == undefined || comments.length == 0) {
-				newElement("span", { className:"nocomments", innerHTML:"[No comments]" }, $$(".comments"));
-			}
+			$$(".comments-section").innerHTML = data;
+			forEach($$A(".comment .deletecommentForm"), function(form) {
+				form.onsubmit = deletecommentEvent;
+			});
 		})
 		.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
 		return false; // Stops form from auto-submitting so the javascript can handle it.

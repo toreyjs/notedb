@@ -44,7 +44,6 @@ exports.page = {};
 		if(refURL.indexOf("/login") <= -1/* Last page was not login */) {
 			req.session.pagebeforelogin = refURL;
 		}
-		console.log(refURL);
 
 		User.findByUsername(username, function(err, user) {
 			if(user != null && password == user.password) {
@@ -353,10 +352,7 @@ exports.page.home = function(req, res) {
 								var pClassArray = ["", "priority-low", "priority-medium", "priority-high"];
 								html += "\
 								<h3>Priority</h3>\
-								<div class='priority' data-priority='"+card.priority+"' data-card='"+card._id+"'>\
-									<span class='priority-text "+pClassArray[card.priority]+"'>"+(pTextArray[card.priority])+" Priority</span> \
-									"+(canEdit ? "<a class='editcardpriority'>[edit]</a>" : "")+"\
-								</div>\
+								"+boardSnippets.cardPriority(req, card, canEdit)+"\
 								\
 								<h3>Comments</h3>\
 								<div class='comments'>\
@@ -371,37 +367,13 @@ exports.page.home = function(req, res) {
 											<hr />\
 										</form>\
 									</div>\
+									<div class='comments-section'>\
 									";
 								}
-								for(var i = 0; i < card.comments.length; i++)
-								{ var comment = card.comments[i], user = commentUsers[comment.userID];
-									html += "\
-									<div class='comment'>\
-										<a class='comment-avatar imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
-											<img src='"+getGravatar(user.email, 30)+"' />\
-										</a>\
-										<div class='comment-wrapper'>\
-											<a class='comment-user' href='/user/"+user.username+"'>"+user.displayName+"</a>\
-											<div class='comment-text'>"+comment.comment+"</div>";
-									if(canEdit) {
-										html += "\
-											<form action='"+req.path+"' method='POST'>\
-												"+dateFormat(comment.creationDate)+" \
-												<input name='card' type='hidden' value='"+card._id+"' />\
-												<input name='comment' type='hidden' value='"+i+"' />\
-												<input name='deletecomment' type='submit' value='Delete' />\
-											</form>\
-										";
-									} else {
-										html += dateFormat(comment.creationDate);
-									}
-									html += "\
-										</div>\
+								html += boardSnippets.listCardComments(req, commentUsers, card, canEdit)
+								html += "\
 									</div>\
-									";
-								}
-								if(card.comments.length == 0) { html += "<span class='nocomments'>[No comments]</span>"; }
-								html += "</div>\
+								</div>\
 								";
 								writePage(res, html);
 							}
@@ -574,6 +546,50 @@ exports.page.home = function(req, res) {
 		html += (addAttachLink ? "<a class='attachselftocard'>Attach<br />Self</a>" : "")
 		return html;
 	};
+	boardSnippets.cardPriority = function(req, card, canEdit) {
+		var pTextArray = ["Not a", "Low", "Medium", "High"];
+		var pClassArray = ["", "priority-low", "priority-medium", "priority-high"];
+		var html = "\
+		<div class='priority' data-priority='"+card.priority+"' data-card='"+card._id+"'>\
+			<span class='priority-text "+pClassArray[card.priority]+"'>"+(pTextArray[card.priority])+" Priority</span> \
+			"+(canEdit ? "<a class='editcardpriority'>[edit]</a>" : "")+"\
+		</div>\
+		";
+		return html;
+	};
+	boardSnippets.listCardComments = function(req, commentUsers, card, canEdit) {
+		var html = "";
+		if(card.comments.length > 0) {
+			for(var i = 0; i < card.comments.length; i++)
+			{ var comment = card.comments[i], user = commentUsers[comment.userID];
+				html += "\
+				<div class='comment'>\
+					<a class='comment-avatar imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
+						<img src='"+getGravatar(user.email, 30)+"' />\
+					</a>\
+					<div class='comment-wrapper'>\
+						<a class='comment-user' href='/user/"+user.username+"'>"+user.displayName+"</a>\
+						<div class='comment-text'>"+comment.comment+"</div>";
+				if(canEdit) {
+					html += "\
+						<form class='deletecommentForm' action='"+req.path+"' method='POST'>\
+							"+dateFormat(comment.creationDate)+" \
+							<input name='card' type='hidden' value='"+card._id+"' />\
+							<input name='comment' type='hidden' value='"+i+"' />\
+							<input name='deletecomment' type='submit' value='Delete' />\
+						</form>\
+					";
+				} else {
+					html += dateFormat(comment.creationDate);
+				}
+				html += "\
+					</div>\
+				</div>\
+				";
+			}
+		} else { html += "<span class='nocomments'>[No comments]</span>"; }
+		return html;
+	};
 
 	exports.action.board = function(req, res) {
 		if(requiresLogin(req, res)) return;
@@ -676,28 +692,23 @@ exports.page.home = function(req, res) {
 						board.findCard(cardID, function(err, card){
 							card.comments.push({ userID:userID, comment:commentText });
 							board.save(function(err, board) {
-								User.findById(userID, function(err, user) {
-									var i = card.comments.length-1;
-									var comment = card.comments[i];
-									var html = "\
-									<div class='comment'>\
-										<a class='comment-avatar imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
-											<img src='"+getGravatar(user.email, 30)+"' />\
-										</a>\
-										<div class='comment-wrapper'>\
-											<a class='comment-user' href='/user/"+user.username+"'>"+user.displayName+"</a>\
-											<div class='comment-text'>"+comment.comment+"</div>\
-											<form action='"+req.path+"' method='POST'>\
-												"+dateFormat(comment.creationDate)+" \
-												<input name='card' type='hidden' value='"+card._id+"' />\
-												<input name='comment' type='hidden' value='"+i+"' />\
-												<input name='deletecomment' type='submit' value='Delete' />\
-											</form>\
-										</div>\
-									</div>\
-									";
+								var commentUsers = {};
+								getCommentUsers();
+
+								function getCommentUsers() {
+									var ids = [];
+									for (var i = 0; i < card.comments.length; i++) {
+										ids.push(card.comments[i].userID);
+									}
+									User.findUsersById(ids, function(err, users) {
+										commentUsers = users;
+										sendMsg();
+									});
+								}
+								function sendMsg() {
+									var html = boardSnippets.listCardComments(req, commentUsers, card, true);
 									sendJSResponse(html);
-								});
+								}
 							});
 						});
 					}
@@ -740,16 +751,7 @@ exports.page.home = function(req, res) {
 						board.findCard(cardID, function(err, card){
 							card.priority = priority;
 							board.save(function(err, board) {
-
-								var pTextArray = ["Not a", "Low", "Medium", "High"];
-								var pClassArray = ["", "priority-low", "priority-medium", "priority-high"];
-								var html = "\
-								<div class='priority' data-priority='"+card.priority+"' data-card='"+card._id+"'>\
-									<span class='priority-text "+pClassArray[card.priority]+"'>"+(pTextArray[card.priority])+" Priority</span> \
-									<a class='editcardpriority'>[edit]</a>\
-								</div>\
-								";
-								sendJSResponse(html);
+								sendJSResponse( boardSnippets.cardPriority(req, card, true) );
 							});
 						});
 					}
@@ -824,7 +826,24 @@ exports.page.home = function(req, res) {
 						board.findCard(cardID, function(err, card){
 							card.comments[commentI].remove();
 							board.save(function(err, board) {
-								sendJSResponse("Comment Deleted Successfully");
+								// Send a whole updated list as the card indexing becomes off.
+								var commentUsers = {};
+								getCommentUsers();
+
+								function getCommentUsers() {
+									var ids = [];
+									for (var i = 0; i < card.comments.length; i++) {
+										ids.push(card.comments[i].userID);
+									}
+									User.findUsersById(ids, function(err, users) {
+										commentUsers = users;
+										sendMsg();
+									});
+								}
+								function sendMsg() {
+									var html = boardSnippets.listCardComments(req, commentUsers, card, true);
+									sendJSResponse(html);
+								}
 							});
 						});
 					}
