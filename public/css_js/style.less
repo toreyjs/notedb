@@ -71,6 +71,19 @@ header #userbox img { margin:1px; border:1px solid #000; }
 		border		: 3px solid #666;
 		border-radius: 10px;
 
+		.attachselftocard {
+			box-sizing	: border-box;
+			display		: inline-block;
+			font-size	: 85%;
+			width		: 40px;
+			height		: 40px;
+			padding		: 2px 0;
+			vertical-align: top;
+			text-align	: center;
+			border		: 2px solid #888;
+			border-radius: 5px;
+		}
+
 		.comments {
 			.comment {
 				position: relative;
@@ -122,28 +135,32 @@ header #userbox img { margin:1px; border:1px solid #000; }
 .priority-medium { color:yellow; }
 .priority-high { color:red; }
 
-#message>* { display: block; position: relative; font-size: 130%; text-align: center; margin: 10px 5px 10px; padding: 5px 0; border-radius: 8px 8px 0 0; }
-#message>*:after { content: ''; display: block; position: absolute; top: 0; bottom: 0; left: 0; right: 0; border-radius: 8px 8px 0 0; pointer-events: none; }
+.message-container {
+	&>* { display: block; position: relative; font-size: 130%; text-align: center; margin: 10px 5px 10px; padding: 5px 0; border-radius: 8px 8px 0 0; }
+	&>*:after { content: ''; display: block; position: absolute; top: 0; bottom: 0; left: 0; right: 0; border-radius: 8px 8px 0 0; pointer-events: none; }
 
-#message .success {
-	color: #002255;
-	text-shadow: 1px 1px #003688;
-	box-shadow: 0px 0px 1px 1px #55446d;
-	border: 1px solid #423453;
-	background: #4c3c60;
-	background: linear-gradient(to bottom,#4c3c60 0%,#584670 100%);
-}
-#message .success:after { border: 1px solid #47385a; }
+	.success {
+		color: #002255;
+		text-shadow: 1px 1px #003688;
+		box-shadow: 0px 0px 1px 1px #55446d;
+		border: 1px solid #423453;
+		background: #4c3c60;
+		background: linear-gradient(to bottom,#4c3c60 0%,#584670 100%);
 
-#message .error {
-	color: #F27970;
-	text-shadow: 1px 1px #ee4d41;
-	box-shadow: 0px 0px 1px 1px #9d1a03;
-	border: 1px solid #751403;
-	background: #891703;
-	background: linear-gradient(to bottom,#891703 0%,#a21b04 100%);
+		&:after { border: 1px solid #47385a; }
+	}
+
+	.error {
+		color: #F27970;
+		text-shadow: 1px 1px #ee4d41;
+		box-shadow: 0px 0px 1px 1px #9d1a03;
+		border: 1px solid #751403;
+		background: #891703;
+		background: linear-gradient(to bottom,#891703 0%,#a21b04 100%);
+
+		&:after { border: 1px solid #7f1503; }
+	}
 }
-#message .error:after { border: 1px solid #7f1503; }
 
 #content {
 	margin: 0px 7px;
@@ -252,17 +269,17 @@ header #userbox img { margin:1px; border:1px solid #000; }
 
 	    *:not(a) { color: #AAA; }
 
-	    #addUserToBoard {
-	    	box-sizing	: border-box;
-	    	display		: inline-block;
-	    	width		: 50px;
-	    	height		: 50px;
-	    	padding		: 5px 0;
-	    	vertical-align: top;
-	    	text-align	: center;
-	    	border		: 2px solid #888;
-	    	border-radius: 5px;
-	    }
+		#addUserToBoard {
+			box-sizing	: border-box;
+			display		: inline-block;
+			width		: 50px;
+			height		: 50px;
+			padding		: 5px 0;
+			vertical-align: top;
+			text-align	: center;
+			border		: 2px solid #888;
+			border-radius: 5px;
+		}
 
 	    #boardSettingsLinkContainer {
 	    	position:absolute;

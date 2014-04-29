@@ -33,11 +33,12 @@ app.use(express.cookieParser('JuniperBarriesD4wg'));
 app.use(express.bodyParser());
 app.use(express.session({cookie: { path: '/', httpOnly: true, maxAge: null}, secret:'JuniperBarriesD4wg!'}));
 
+router(app, requestHandlers);
+//app.use(app.router);
+
 var server = http.createServer(app);
 var io = require('socket.io').listen(server);
 sockets.start(io);
-
-router(app, requestHandlers);
 
 //http.createServer(app).listen(config.port, config.host);
 app.listen(config.port, config.host);

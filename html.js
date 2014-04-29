@@ -12,6 +12,7 @@ function getHeader(title, req, message) {
 		<title>NoteDB - "+title+"</title>\
 		<link href='/css_js/style.css' rel='stylesheet' />\
 		<script src='http://code.jquery.com/jquery-latest.min.js'></script>\
+		<!-- Work via hack here (put in public folder manually): http://impactjs.com/forums/help/yet-another-nodejs-socket-io-impact-thread/page/1#post18363 -->\
 		<script src='/socket.io/socket.io.js'></script>\
 	</head>\
 	<body>\
@@ -22,7 +23,7 @@ function getHeader(title, req, message) {
 			<nav>"+getNav()+"</nav>\
 			<div class='clear'></div>\
 		</header>\
-		<div id='message'>"+messageDiv+"<noscript><div class='error'>Javascript is needed to access all features of this site; Please enable it.</div></noscript></div>\
+		<div id='message' class='message-container'>"+messageDiv+"<noscript><div class='error'>Javascript is needed to access all features of this site; Please enable it.</div></noscript></div>\
 		<div id='content'>";
 	return html;
 }

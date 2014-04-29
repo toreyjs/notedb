@@ -21,6 +21,12 @@
 		elem.parentNode.removeChild(elem);
 	}
 
+	function addListener(elem, type, callback) {
+		if(elem != undefined) {
+			elem.addEventListener(type, callback);
+		}
+	}
+
 	function toggleVisibility(elem) {
 		elem.style.visibility = (elem.style.visibility == 'hidden' ? 'visible' : 'hidden');
 	}
@@ -28,12 +34,12 @@
 
 var board = $$("#board");
 var overlay = $$("#overlay");
-//var socket = io.connect('http://localhost');
+var socket = io.connect('http://localhost');
 //{REGION Sockets
-	// socket.on('news', function (data) {
-	// 	console.log(data);
-	// 	socket.emit('my other event', { my: 'data' });
-	// });
+	socket.on('news', function (data) {
+		console.log(data);
+		socket.emit('my other event', { my: 'data' });
+	});
 //}END Sockets
 
 (function init() {
@@ -42,20 +48,34 @@ var overlay = $$("#overlay");
 
 	overlay.addEventListener("click", function(e) { if(e.target.id == "overlay") { removeOverlay(); } } );
 
-	// var loginlink = $$("#loginlink");
-	// if(loginlink) {
-	// 	loginlink.addEventListener("click", function(e) {
-	// 		e.preventDefault();
-	// 		var wndw = newWindow("Un momento, por favour...");
-	// 		$.get( "/login?get=window", function(data) {
-	// 			wndw.innerHTML = data;
-	// 		}).fail(function(jqXHR){ wndw.innerHTML = jqXHR.responseText; });
-	// 	});
-	// }
+	if(loginlink = $$("#loginlink")) {
+		loginlink.addEventListener("click", function(e) {
+			e.preventDefault();
+			var wndw = newWindow("\
+			<form id='loginform' action='/login' method='POST' style='display:inline-block; padding-right:10px;'>\
+				<input type='text' name='username' placeholder='Username' /><br />\
+				<input type='password' name='password' placeholder='Password' /><br />\
+				<input type='submit' name='submit' value='Submit' />\
+				<input type='reset' name='reset' value='Reset' />\
+			</form>\
+			\
+			<div style='display:inline-block;'>\
+				< Login <br />\
+				<strong style='font-size:150%;'>OR</strong><br />\
+				<a href='/newuser'>Create new account</a>\
+			</div>\
+			");
 
+			$$("form input[name=username]", wndw).focus();
+		});
+	}
+
+	addBoardEvents();
+})();
+
+function addBoardEvents() {
 	if(board) {
-		var addUserToBoard = $$("#addUserToBoard");
-		if(addUserToBoard) {
+		if(addUserToBoard = $$("#addUserToBoard")) {
 			addUserToBoard.addEventListener("click", function(){
 				var addUserToBoardContainer = addUserToBoard.parentElement;
 
@@ -77,7 +97,7 @@ var overlay = $$("#overlay");
 						userData.insertBefore(addUserToBoardContainer);
 						userData.bind("click", removeboarduserEvent);
 					})
-					.fail(function(jqXHR){ console.log(arguments); printMessage(FAIL, jqXHR.responseText); })
+					.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); })
 					.always(function() {
 						removeElem(form);
 						toggleVisibility(addUserToBoard);
@@ -101,121 +121,7 @@ var overlay = $$("#overlay");
 
 		// Clicking Cards
 		forEach($$A(".card"), function(card) {
-			card.addEventListener("click", function(e) {
-				if(e.target.className == "card") {
-					var wndw = newWindow("Loading...");
-					$.get( document.URL+"?get=window&card="+card.id, function(data) {
-						wndw.innerHTML = data;
-
-						var editcardtitle = $$(".editcardtitle");
-						if(editcardtitle) {
-							editcardtitle.addEventListener("click", function(){
-								var title = editcardtitle.parentElement;
-								var text = title.querySelector(".cardtitle-text").innerHTML;
-								var card = title.dataset.card;
-
-								title.innerHTML = "\
-								<form method='POST' action='"+document.location.href+"'>\
-									<input type='hidden' name='card' value='"+card+"' />\
-									<input type='text' name='title' value='"+text+"' style='width:407px;' />\
-									<input type='submit' name='editcardtitle' value='Save Title' />\
-								</form>\
-								";
-							});
-						}
-
-						var editcarddescription = $$(".editcarddescription");
-						if(editcarddescription) {
-							editcarddescription.addEventListener("click", function(){
-								var desc = editcarddescription.parentElement;
-								var text = desc.querySelector(".description-text").innerHTML;
-								var card = desc.dataset.card;
-
-								desc.innerHTML = "\
-								<form method='POST' action='"+document.location.href+"'>\
-									<input type='hidden' name='card' value='"+card+"' />\
-									<textarea name='description' style='width:100%;'>"+text+"</textarea><br />\
-									<input type='submit' name='editcarddescription' value='Save Description' />\
-								</form>\
-								";
-							});
-						}
-
-						var attachselftocard = $$(".attachselftocard");
-						if(attachselftocard) {
-							attachselftocard.addEventListener("click", function(){
-								var card = $$("#cardID").value;
-								$.post(document.location.href, { card:card, attachselftocard: "attach" }, function(data) {
-									removeOverlay();
-									printMessage(SUCCESS, data);
-								})
-								.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
-							});
-						}
-
-						forEach($$A(".removeattacheduser"), function(removeattacheduser) {
-							removeattacheduser.addEventListener("click", function(){
-								var card = $$("#cardID").value;
-								var user = removeattacheduser.parentElement.dataset.user;
-
-								removeMessage();
-								$.post(document.location.href, { card:card, user:user, removeattacheduser: "remove" }, function(data) {
-									removeOverlay();
-									printMessage(SUCCESS, data);
-								})
-								.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
-							});
-						});
-
-						var editcardpriority = $$(".editcardpriority");
-						if(editcardpriority) {
-							editcardpriority.addEventListener("click", function(){
-								var priority = editcardpriority.parentElement;
-								var pInt = priority.dataset.priority;
-								var card = priority.dataset.card;
-
-								priority.innerHTML = "\
-								<form method='POST' action='"+document.location.href+"'>\
-									<input type='hidden' name='card' value='"+card+"' />\
-									<select name='priority'>\
-										<option value='0' "+(pInt == 0 ? "selected" : "")+">[None]</option>\
-										<option value='1' "+(pInt == 1 ? "selected" : "")+">Low</option>\
-										<option value='2' "+(pInt == 2 ? "selected" : "")+">Medium</option>\
-										<option value='3' "+(pInt == 3 ? "selected" : "")+">High</option>\
-									</select>\
-									<input type='submit' name='editcardpriority' value='Save Title' />\
-								</form>\
-								";
-							});
-						}
-
-						var newcommentform = $$(".newcomment form");
-						if(newcommentform) {
-							newcommentform.onsubmit = function() {
-								var loading = getLoadingImg(newcommentform);
-								removeMessage();
-
-								$.post(newcommentform.action, serializePlusSubmit(newcommentform), function(data) {
-									var comment = $(data)[0];
-									newcommentform.parentElement.parentElement.appendChild(comment);
-									newcommentform.reset();
-									$$(".comment .comment-wrapper form", comment).onsubmit = deletecommentEvent;
-								})
-								.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); })
-								.always(function() {
-									removeElem(loading);
-								});
-								return false; // Stops form from auto-submitting so the javascript can handle it.
-							}
-						}
-
-						forEach($$A(".comment .comment-wrapper form"), function(form) {
-							form.onsubmit = deletecommentEvent;
-						});
-					})
-					.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
-				}
-			});
+			addCardEvents(card);
 		});
 
 		// Editing Section button
@@ -236,9 +142,186 @@ var overlay = $$("#overlay");
 			});
 		});
 	}
-})();
+}
+
+function addCardEvents(card) {
+	card.addEventListener("click", function(e) {
+		if(e.target.className == "card") {
+			var wndw = newWindow(getLoadingImg().outerHTML+" Loading...");
+			$.get( document.URL+"?get=window&card="+card.id, function(data) {
+				wndw.innerHTML = data;
+
+				addListener($$(".editcardtitle"), "click", editcardtitleEvent);
+
+				addListener($$(".editcarddescription"), "click", editcarddescriptionEvent);
+
+				addListener($$(".attachselftocard"), "click", attachselftocardEvent);
+
+				forEach($$A(".removeattacheduser"), function(removeattacheduser) {
+					removeattacheduser.addEventListener("click", removeattacheduserEvent);
+				});
+
+				addListener($$(".editcardpriority"), "click", editcardpriorityEvent);
+
+				if(newcommentform = $$(".newcomment form")) {
+					newcommentform.onsubmit = function() {
+						var loading = getLoadingImg(newcommentform);
+						removeMessage();
+
+						$.post(newcommentform.action, serializePlusSubmit(newcommentform), function(data) {
+							if(nocomments = $$(".comments .nocomments")) { removeElem(nocomments); }
+
+							var comment = $(data)[0];
+							newcommentform.parentElement.parentElement.appendChild(comment);
+							newcommentform.reset();
+							$$(".comment .comment-wrapper form", comment).onsubmit = deletecommentEvent;
+						})
+						.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); })
+						.always(function() {
+							removeElem(loading);
+						});
+						return false; // Stops form from auto-submitting so the javascript can handle it.
+					}
+				}
+
+				forEach($$A(".comment .comment-wrapper form"), function(form) {
+					form.onsubmit = deletecommentEvent;
+				});
+			})
+			.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
+		}
+	});
+}
 
 //{REGION Event Handlers
+	function editcardtitleEvent(e){
+		var editcardtitle = e.target;
+		var title = editcardtitle.parentElement;
+		var text = title.querySelector(".cardtitle-text").innerHTML;
+		var card = title.dataset.card;
+
+		title.innerHTML = "";
+		var form = newElement("form", {
+			method:"POST",
+			action:document.location.href,
+			innerHTML:"\
+			<input type='hidden' name='card' value='"+card+"' />\
+			<input type='text' name='title' value='"+text+"' style='width:407px;' />\
+			<input type='submit' name='editcardtitle' value='Save Title' />\
+			"
+		}, title);
+
+		form.onsubmit = function() {
+			var submit = $$("[type=submit]", form);
+			submit.disabled = true;
+			$(getLoadingImg()).insertAfter(submit);
+
+			$.post(form.action, serializePlusSubmit(form), function(data) {
+				title.innerHTML = data;
+				$$(".editcardtitle").addEventListener("click", editcardtitleEvent);
+			})
+			.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
+			return false;
+		}
+	}
+
+	function editcarddescriptionEvent(e){
+		var editcarddescription = e.target;
+		var desc = editcarddescription.parentElement;
+		var text = desc.querySelector(".description-text").innerHTML;
+		var card = desc.dataset.card;
+
+		desc.innerHTML = "";
+		var form = newElement("form", {
+			method:"POST",
+			action:document.location.href,
+			innerHTML:"\
+			<input type='hidden' name='card' value='"+card+"' />\
+			<textarea name='description' style='width:100%;'>"+text+"</textarea><br />\
+			<input type='submit' name='editcarddescription' value='Save Description' />\
+			"
+		}, desc);
+
+		form.onsubmit = function() {
+			var submit = $$("[type=submit]", form);
+			submit.disabled = true;
+			$(getLoadingImg()).insertAfter(submit);
+
+			$.post(form.action, serializePlusSubmit(form), function(data) {
+				desc.innerHTML = data;
+				$$(".editcarddescription").addEventListener("click", editcarddescriptionEvent);
+			})
+			.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
+			return false;
+		}
+	}
+
+	function attachselftocardEvent(e){
+		var attachselftocard = e.target;
+		var container = attachselftocard.parentElement;
+
+		var card = $$("#cardID").value;
+		$.post(document.location.href, { card:card, attachselftocard: "attach" }, function(data) {
+			container.innerHTML = data;
+			forEach($$A(".removeattacheduser"), function(removeattacheduser) {
+				removeattacheduser.addEventListener("click", removeattacheduserEvent);
+			});
+		})
+		.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
+	}
+
+	function removeattacheduserEvent(e){
+		var removeattacheduser = e.target;
+		var card = $$("#cardID").value;
+		var user = removeattacheduser.parentElement.dataset.user;
+		var container = removeattacheduser.parentElement.parentElement;
+
+		removeMessage();
+		$.post(document.location.href, { card:card, user:user, removeattacheduser: "remove" }, function(data) {
+			container.innerHTML = data;
+			addListener($$(".attachselftocard"), "click", attachselftocardEvent);
+			forEach($$A(".removeattacheduser"), function(removeattacheduser) {
+				removeattacheduser.addEventListener("click", removeattacheduserEvent);
+			});
+		})
+		.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
+	}
+
+	function editcardpriorityEvent(e) {
+		var editcardpriority = e.target;
+		var priority = editcardpriority.parentElement;
+		var pInt = priority.dataset.priority;
+		var card = priority.dataset.card;
+
+		priority.innerHTML = "";
+		var form = newElement("form", {
+			method:"POST",
+			action:document.location.href,
+			innerHTML:"\
+			<input type='hidden' name='card' value='"+card+"' />\
+			<select name='priority'>\
+				<option value='0' "+(pInt == 0 ? "selected" : "")+">[None]</option>\
+				<option value='1' "+(pInt == 1 ? "selected" : "")+">Low</option>\
+				<option value='2' "+(pInt == 2 ? "selected" : "")+">Medium</option>\
+				<option value='3' "+(pInt == 3 ? "selected" : "")+">High</option>\
+			</select>\
+			<input type='submit' name='editcardpriority' value='Save Title' />\
+			"
+		}, priority);
+
+		form.onsubmit = function(e) {
+			var submit = $$("[type=submit]", form);
+			submit.disabled = true;
+			$(getLoadingImg()).insertAfter(submit);
+			$.post(form.action, serializePlusSubmit(form), function(data) {
+				priority.outerHTML = data;
+				$$(".editcardpriority").addEventListener("click", editcardpriorityEvent);
+			})
+			.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
+			return false;
+		}
+	}
+
 	function removeboarduserEvent(e){
 		var removeboarduser = e.target;
 		var parent = removeboarduser.parentElement;
@@ -261,6 +344,10 @@ var overlay = $$("#overlay");
 
 		$.post(form.action, serializePlusSubmit(form), function(data) {
 			removeElem(form.parentElement.parentElement);
+			var comments = $$A(".comments .comment");
+			if(comments == undefined || comments.length == 0) {
+				newElement("span", { className:"nocomments", innerHTML:"[No comments]" }, $$(".comments"));
+			}
 		})
 		.fail(function(jqXHR){ printMessage(FAIL, jqXHR.responseText); });
 		return false; // Stops form from auto-submitting so the javascript can handle it.
@@ -278,7 +365,10 @@ var overlay = $$("#overlay");
 	function newWindow(innerHTML) {
 		overlay.style.display = "block";
 		overlay.innerHTML = "";
-		return newElement("div", { className:"window", innerHTML:innerHTML }, overlay);
+		var wndw = newElement("div", { className:"window" }, overlay);
+		newElement("div", { id:"windowMessage", className:"message-container" }, wndw);
+		var wndwContent = newElement("div", { innerHTML:innerHTML }, wndw);
+		return wndwContent;
 	}
 	function removeOverlay(e) { overlay.style.display = "none"; }
 

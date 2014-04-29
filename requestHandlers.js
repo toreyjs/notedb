@@ -13,8 +13,6 @@ exports.page = {};
 
 //}REGION Login / Logout
 	exports.page.login = function(req, res) {
-		//console.log("Request handler 'login' was called.");
-
 		if(req.session.user) {
 			res.redirect('/');
 		} else {
@@ -39,11 +37,15 @@ exports.page = {};
 	};
 
 	exports.action.login = function(req, res) {
-		//console.log("logging in");
-		
 		var username = req.body.username;
 		var password = req.body.password;
 		
+		var refURL = req.header('Referer') || '/';
+		if(refURL.indexOf("/login") <= -1/* Last page was not login */) {
+			req.session.pagebeforelogin = refURL;
+		}
+		console.log(refURL);
+
 		User.findByUsername(username, function(err, user) {
 			if(user != null && password == user.password) {
 				req.session.user = user;
@@ -61,7 +63,7 @@ exports.page = {};
 
 	exports.action.logout = function(req, res) {
 		req.session.destroy();
-		res.redirect('/login');
+		res.redirect(req.header('Referer') || '/login');
 	};
 //}END Login / Logout
 
@@ -332,35 +334,19 @@ exports.page.home = function(req, res) {
 								html += "\
 								<input id='cardID' type='hidden' value='"+card._id+"' />\
 								<div class='cardtitle' data-card='"+card._id+"'>\
-									<h2 class='cardtitle-text' style='display:inline;'>"+card.title+"</h2> \
-									"+(canEdit ? "<a class='editcardtitle'>[edit]</a>" : "")+"\
+									"+boardSnippets.cardTitle(req, card, canEdit)+"\
 								</div>\
 								<hr />\
 								\
 								<h3>Description</h3>\
 								<div class='description' data-card='"+card._id+"'>\
-									<span class='description-text'>"+card.description+"</span> \
-									"+(canEdit ? "<a class='editcarddescription'>[edit]</a>" : "")+"\
+									"+boardSnippets.cardDescription(req, card, canEdit)+"\
 								</div>\
 								\
 								<h3>Attached Users</h3>\
 								<div class='users' data-card='"+card._id+"'>\
 								";
-								if(card.users.length == 0) { html += "There are no users attached to this card."; }
-								for (var i = 0; i < card.users.length; i++) {
-									var id = card.users[i].userID, user = attachedUsers[id];
-									html += "\
-									<span class='attached-user' data-user='"+id+"'>\
-										<a class='imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
-											<img src='"+getGravatar(user.email, 40)+"' />\
-										</a>\
-										"+(canEdit ? "<br /><a class='removeattacheduser'>Remove</a>" : "")+"\
-									</span>\
-									";
-								}
-								var addAttachLink = canEdit && req.session.user && /*User not in list*/!attachedUsers[req.session.user._id];
-								html += "\
-									"+(addAttachLink ? "<a class='attachselftocard'>[attach self]</a>" : "")+"\
+								html += boardSnippets.listAttachedCardUsers(req, card, attachedUsers, canEdit) +"\
 								</div>";
 
 								var pTextArray = ["Not a", "Low", "Medium", "High"];
@@ -414,7 +400,7 @@ exports.page.home = function(req, res) {
 									</div>\
 									";
 								}
-								if(card.comments.length == 0) { html += "[No comments]"; }
+								if(card.comments.length == 0) { html += "<span class='nocomments'>[No comments]</span>"; }
 								html += "</div>\
 								";
 								writePage(res, html);
@@ -555,6 +541,40 @@ exports.page.home = function(req, res) {
 		});
 	};
 
+	var boardSnippets = {};
+	boardSnippets.cardTitle = function(req, card, canEdit) {
+		var html = "\
+		<h2 class='cardtitle-text' style='display:inline;'>"+card.title+"</h2> \
+		"+(canEdit ? "<a class='editcardtitle'>[edit]</a>" : "")+"\
+		";
+		return html;
+	};
+	boardSnippets.cardDescription = function(req, card, canEdit) {
+		var html = "\
+		<span class='description-text'>"+card.description+"</span> \
+		"+(canEdit ? "<a class='editcarddescription'>[edit]</a>" : "")+"\
+		";
+		return html;
+	};
+	boardSnippets.listAttachedCardUsers = function(req, card, attachedUsers, canEdit) {
+		var html = "";
+		if(card.users.length == 0) { html += "There are no users attached to this card."; }
+		for (var i = 0; i < card.users.length; i++) {
+			var id = card.users[i].userID, user = attachedUsers[id];
+			html += "\
+			<span class='attached-user' data-user='"+id+"'>\
+				<a class='imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
+					<img src='"+getGravatar(user.email, 40)+"' />\
+				</a>\
+				"+(canEdit ? "<br /><a class='removeattacheduser'>Remove</a>" : "")+"\
+			</span>\
+			";
+		}
+		var addAttachLink = canEdit && req.session.user && /*User not in list*/!attachedUsers[req.session.user._id];
+		html += (addAttachLink ? "<a class='attachselftocard'>Attach<br />Self</a>" : "")
+		return html;
+	};
+
 	exports.action.board = function(req, res) {
 		if(requiresLogin(req, res)) return;
 
@@ -627,8 +647,24 @@ exports.page.home = function(req, res) {
 						board.findCard(cardID, function(err, card){
 							card.users.push({ userID:userID });
 							board.save(function(err, board) {
-								//finish("You are now attached to the card <i>"+card.title+"</i>.");
-								sendJSResponse("You are now attached to the card <i>"+card.title+"</i>.");
+								var attachedUsers = {};
+								getAttachedUsers();
+
+								function getAttachedUsers() {
+									var ids = [];
+									for (var i = 0; i < card.users.length; i++) {
+										ids.push(card.users[i].userID);
+									}
+									User.findUsersById(ids, function(err, users) {
+										attachedUsers = users;
+										sendMsg();
+									});
+								}
+
+								function sendMsg() {
+									var html = boardSnippets.listAttachedCardUsers(req, card, attachedUsers, true);
+									sendJSResponse(html);
+								}
 							});
 						});
 					}
@@ -682,7 +718,7 @@ exports.page.home = function(req, res) {
 						board.findCard(cardID, function(err, card){
 							card.title = title;
 							board.save(function(err, board) {
-								finish("Card Title Edited Successfully");
+								sendJSResponse( boardSnippets.cardTitle(req, card, true) );
 							});
 						});
 					}
@@ -693,7 +729,7 @@ exports.page.home = function(req, res) {
 						board.findCard(cardID, function(err, card){
 							card.description = description;
 							board.save(function(err, board) {
-								finish("Card Description Edited Successfully");
+								sendJSResponse( boardSnippets.cardDescription(req, card, true) );
 							});
 						});
 					}
@@ -704,7 +740,16 @@ exports.page.home = function(req, res) {
 						board.findCard(cardID, function(err, card){
 							card.priority = priority;
 							board.save(function(err, board) {
-								finish("Card Priority Edited Successfully");
+
+								var pTextArray = ["Not a", "Low", "Medium", "High"];
+								var pClassArray = ["", "priority-low", "priority-medium", "priority-high"];
+								var html = "\
+								<div class='priority' data-priority='"+card.priority+"' data-card='"+card._id+"'>\
+									<span class='priority-text "+pClassArray[card.priority]+"'>"+(pTextArray[card.priority])+" Priority</span> \
+									<a class='editcardpriority'>[edit]</a>\
+								</div>\
+								";
+								sendJSResponse(html);
 							});
 						});
 					}
@@ -735,8 +780,24 @@ exports.page.home = function(req, res) {
 								if(user.userID == userID) { 
 									card.users[i].remove();
 									board.save(function(err, board) {
-										//finish("You have been unattached from the card <i>"+card.title+"</i>.");
-										sendJSResponse("User has successfully been unattached from the card <i>"+card.title+"</i>.");
+										var attachedUsers = {};
+										getAttachedUsers();
+
+										function getAttachedUsers() {
+											var ids = [];
+											for (var i = 0; i < card.users.length; i++) {
+												ids.push(card.users[i].userID);
+											}
+											User.findUsersById(ids, function(err, users) {
+												attachedUsers = users;
+												sendMsg();
+											});
+										}
+
+										function sendMsg() {
+											var html = boardSnippets.listAttachedCardUsers(req, card, attachedUsers, true);
+											sendJSResponse(html);
+										}
 										return;
 									});
 								}
