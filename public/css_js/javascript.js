@@ -34,7 +34,7 @@
 
 var board = $$("#board");
 var overlay = $$("#overlay");
-var socket = io.connect('http://localhost');
+var socket = io.connect("//"+window.location.hostname);
 console.log(socket);
 //{REGION Sockets
 	socket.on('news', function (data) {

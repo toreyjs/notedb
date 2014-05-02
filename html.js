@@ -1,3 +1,5 @@
+var config = require('./config');
+
 function getHeader(title, req, message) {
 	if(title === undefined) title = "NO TITLE!";
 	var messageDiv = "";
@@ -36,6 +38,7 @@ function getFooter() {
 			Torey Scheer &copy; 2014 \
 			<span style='float:right;'><a href='https://github.com/toreyjs/notedb' target='_blank'>View code on Github</a></span>\
 		</footer>\
+		<script>var app = app || {}; app.host = '"+config.host+"'; app.port = "+config.port+";</script>\
 		<script src='/css_js/javascript.js' type='text/javascript'></script>\
 	</body>\
 </html>";
