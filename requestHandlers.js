@@ -1447,7 +1447,7 @@ exports.page.home = function(req, res) {
 	}
 
 	function getGravatar(email, size) {
-		return "http://www.gravatar.com/avatar/"+md5(email)+"?s="+size+"&d=identicon";
+		return "//www.gravatar.com/avatar/"+md5(email)+"?s="+size+"&d=identicon";
 	}
 	function md5(str) {
 		return require('crypto').createHash('md5').update(str).digest('hex');

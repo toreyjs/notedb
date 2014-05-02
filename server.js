@@ -10,6 +10,13 @@
   var config = require('./config');
 //}END Requires
 
+//{REGION Links
+  /*
+    These are just a list of (some of the) links I found helpful for this project.
+    http://www.anupshinde.com/posts/how-to-create-nodejs-npm-package/
+  */
+//}END Links
+
 // (Async) Mongoose runs while the server is running rather than connecting to it multiple times (also prevents race conditions)
 // Check this first since the whole site depends on database access
 mongoose.connect(config.database.URI);
@@ -34,14 +41,24 @@ app.use(express.bodyParser());
 app.use(express.session({cookie: { path: '/', httpOnly: true, maxAge: null}, secret:'JuniperBarriesD4wg!'}));
 
 router(app, requestHandlers);
-//app.use(app.router);
+app.use(app.router);
 
-var server = http.createServer(app);
-var io = require('socket.io').listen(server);
+var server = app.listen(config.port, config.host);
+var io = require('socket.io').listen(server, { log: false });
 sockets.start(io);
 
+// Original
+// var io = require('socket.io').listen(80);
+// io.sockets.on('connection', function (socket) {
+//   socket.emit('news', { hello: 'world' });
+//   socket.on('my other event', function (data) {
+//     console.log(data);
+//   });
+// });
+
 //http.createServer(app).listen(config.port, config.host);
-app.listen(config.port, config.host);
+//app.listen(config.port, config.host);
+//server.listen(config.port, config.host);
 
 /**
  *  Setup termination handlers (for exit and a list of signals).

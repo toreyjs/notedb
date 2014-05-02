@@ -34,18 +34,19 @@
 
 var board = $$("#board");
 var overlay = $$("#overlay");
-//var socket = io.connect('http://localhost');
+var socket = io.connect('http://localhost');
+console.log(socket);
 //{REGION Sockets
-	// socket.on('news', function (data) {
-	// 	console.log(data);
-	// 	socket.emit('my other event', { my: 'data' });
-	// });
+	socket.on('news', function (data) {
+		console.log(data);
+		socket.emit('my other event', { my: 'data' });
+	});
 //}END Sockets
 
 (function init() {
 	window.addEventListener('resize', windowResized);
 	windowResized();
-	
+
 	overlay.addEventListener("click", function(e) { if(e.target.id == "overlay") { removeOverlay(); } } );
 
 	if(loginlink = $$("#loginlink")) {

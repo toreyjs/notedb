@@ -71,7 +71,7 @@ function getUserbox(req)
 		//var email = get_user_info($username); $email = $email["email"];
 		var myHash = md5(user.email);
 		var myParams = "?s=42&d=identicon";
-		var imgSrc = "http://www.gravatar.com/avatar/"+myHash+myParams;
+		var imgSrc = "//www.gravatar.com/avatar/"+myHash+myParams;
 		
 		result = "\
 		<div id='userbox'>\
