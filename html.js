@@ -13,7 +13,7 @@ function getHeader(title, req, message) {
 		<meta charset='utf-8' />\
 		<title>NoteDB - "+title+"</title>\
 		<link href='/css_js/style.css' rel='stylesheet' />\
-		<script src='//code.jquery.com/jquery-latest.min.js'></script>\
+		<script src='//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>\
 		<!-- Work via hack here (put in public folder manually): http://impactjs.com/forums/help/yet-another-nodejs-socket-io-impact-thread/page/1#post18363 -->\
 		<script src='/socket.io/socket.io.js'></script>\
 	</head>\
@@ -79,7 +79,7 @@ function getUserbox(req)
 		result = "\
 		<div id='userbox'>\
 			<span style='float:right; text-align:right;'>\
-				<a style='color:#888; font-size:125%; display:inline-block; margin-right:3px;' href='/user/"+user.username+"'>"+user.displayName+"</a>\
+				<a class='userLink' style='color:#888; font-size:125%; display:inline-block; margin-right:3px;' href='/user/"+user.username+"'>"+user.displayName+"</a>\
 				<br />\
 				<a href='/user/"+user.username+"/settings'>Settings</a>\
 				&bull;\

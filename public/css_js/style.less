@@ -281,6 +281,32 @@ header #userbox img { margin:1px; border:1px solid #000; }
 			border-radius: 5px;
 		}
 
+		#chat-container {
+			#chat {
+				overflow	: auto;
+				height		: 200px;
+				padding		: 2px 5px;
+				background	: #CCC;
+
+				.systemMessage { color: #888; }
+				.userMessage {
+					color: #333;
+					
+					.name{
+						color: #FFF;
+						@blur: 1px;
+						@s: 2px;
+						@c: #888;
+						text-shadow:@s @s @blur @c, -@s @s @blur @c, @s -@s @blur @c, -@s -@s @blur @c;
+					}
+				}
+			}
+			
+			#chatMessage {
+				width: 100%;
+			}
+		}
+
 	    #boardSettingsLinkContainer {
 	    	position:absolute;
 	    	bottom:3px;

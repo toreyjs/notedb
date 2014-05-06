@@ -502,6 +502,15 @@ exports.page.home = function(req, res) {
 								}
 								html += "\
 							</div>\
+							"+(canEdit ? "<h3>Board Chat</h3>\
+								<div id='chat-container'>\
+								<div id='chat'>\
+									\
+								</div>\
+								<textarea id='chatMessage'></textarea>\
+								<br />\
+								<button id='sendChatMessage'>Send</button>\
+							</div>" : "")+"\
 							"+(canEdit ? "<div id='boardSettingsLinkContainer'><a href='/board/"+boardId+"/settings'>Edit Settings</a></div>" : "")+"\
 						</aside>\
 						";
@@ -513,83 +522,85 @@ exports.page.home = function(req, res) {
 		});
 	};
 
-	var boardSnippets = {};
-	boardSnippets.cardTitle = function(req, card, canEdit) {
-		var html = "\
-		<h2 class='cardtitle-text' style='display:inline;'>"+card.title+"</h2> \
-		"+(canEdit ? "<a class='editcardtitle'>[edit]</a>" : "")+"\
-		";
-		return html;
-	};
-	boardSnippets.cardDescription = function(req, card, canEdit) {
-		var html = "\
-		<span class='description-text'>"+card.description+"</span> \
-		"+(canEdit ? "<a class='editcarddescription'>[edit]</a>" : "")+"\
-		";
-		return html;
-	};
-	boardSnippets.listAttachedCardUsers = function(req, card, attachedUsers, canEdit) {
-		var html = "";
-		if(card.users.length == 0) { html += "There are no users attached to this card."; }
-		for (var i = 0; i < card.users.length; i++) {
-			var id = card.users[i].userID, user = attachedUsers[id];
-			html += "\
-			<span class='attached-user' data-user='"+id+"'>\
-				<a class='imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
-					<img src='"+getGravatar(user.email, 40)+"' />\
-				</a>\
-				"+(canEdit ? "<br /><a class='removeattacheduser'>Remove</a>" : "")+"\
-			</span>\
+	//{REGION boardSnippets
+		var boardSnippets = {};
+		boardSnippets.cardTitle = function(req, card, canEdit) {
+			var html = "\
+			<h2 class='cardtitle-text' style='display:inline;'>"+card.title+"</h2> \
+			"+(canEdit ? "<a class='editcardtitle'>[edit]</a>" : "")+"\
 			";
-		}
-		var addAttachLink = canEdit && req.session.user && /*User not in list*/!attachedUsers[req.session.user._id];
-		html += (addAttachLink ? "<a class='attachselftocard'>Attach<br />Self</a>" : "")
-		return html;
-	};
-	boardSnippets.cardPriority = function(req, card, canEdit) {
-		var pTextArray = ["Not a", "Low", "Medium", "High"];
-		var pClassArray = ["", "priority-low", "priority-medium", "priority-high"];
-		var html = "\
-		<div class='priority' data-priority='"+card.priority+"' data-card='"+card._id+"'>\
-			<span class='priority-text "+pClassArray[card.priority]+"'>"+(pTextArray[card.priority])+" Priority</span> \
-			"+(canEdit ? "<a class='editcardpriority'>[edit]</a>" : "")+"\
-		</div>\
-		";
-		return html;
-	};
-	boardSnippets.listCardComments = function(req, commentUsers, card, canEdit) {
-		var html = "";
-		if(card.comments.length > 0) {
-			for(var i = 0; i < card.comments.length; i++)
-			{ var comment = card.comments[i], user = commentUsers[comment.userID];
+			return html;
+		};
+		boardSnippets.cardDescription = function(req, card, canEdit) {
+			var html = "\
+			<span class='description-text'>"+card.description+"</span> \
+			"+(canEdit ? "<a class='editcarddescription'>[edit]</a>" : "")+"\
+			";
+			return html;
+		};
+		boardSnippets.listAttachedCardUsers = function(req, card, attachedUsers, canEdit) {
+			var html = "";
+			if(card.users.length == 0) { html += "There are no users attached to this card."; }
+			for (var i = 0; i < card.users.length; i++) {
+				var id = card.users[i].userID, user = attachedUsers[id];
 				html += "\
-				<div class='comment'>\
-					<a class='comment-avatar imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
-						<img src='"+getGravatar(user.email, 30)+"' />\
+				<span class='attached-user' data-user='"+id+"'>\
+					<a class='imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
+						<img src='"+getGravatar(user.email, 40)+"' />\
 					</a>\
-					<div class='comment-wrapper'>\
-						<a class='comment-user' href='/user/"+user.username+"'>"+user.displayName+"</a>\
-						<div class='comment-text'>"+comment.comment+"</div>";
-				if(canEdit) {
-					html += "\
-						<form class='deletecommentForm' action='"+req.path+"' method='POST'>\
-							"+dateFormat(comment.creationDate)+" \
-							<input name='card' type='hidden' value='"+card._id+"' />\
-							<input name='comment' type='hidden' value='"+i+"' />\
-							<input name='deletecomment' type='submit' value='Delete' />\
-						</form>\
-					";
-				} else {
-					html += dateFormat(comment.creationDate);
-				}
-				html += "\
-					</div>\
-				</div>\
+					"+(canEdit ? "<br /><a class='removeattacheduser'>Remove</a>" : "")+"\
+				</span>\
 				";
 			}
-		} else { html += "<span class='nocomments'>[No comments]</span>"; }
-		return html;
-	};
+			var addAttachLink = canEdit && req.session.user && /*User not in list*/!attachedUsers[req.session.user._id];
+			html += (addAttachLink ? "<a class='attachselftocard'>Attach<br />Self</a>" : "")
+			return html;
+		};
+		boardSnippets.cardPriority = function(req, card, canEdit) {
+			var pTextArray = ["Not a", "Low", "Medium", "High"];
+			var pClassArray = ["", "priority-low", "priority-medium", "priority-high"];
+			var html = "\
+			<div class='priority' data-priority='"+card.priority+"' data-card='"+card._id+"'>\
+				<span class='priority-text "+pClassArray[card.priority]+"'>"+(pTextArray[card.priority])+" Priority</span> \
+				"+(canEdit ? "<a class='editcardpriority'>[edit]</a>" : "")+"\
+			</div>\
+			";
+			return html;
+		};
+		boardSnippets.listCardComments = function(req, commentUsers, card, canEdit) {
+			var html = "";
+			if(card.comments.length > 0) {
+				for(var i = 0; i < card.comments.length; i++)
+				{ var comment = card.comments[i], user = commentUsers[comment.userID];
+					html += "\
+					<div class='comment'>\
+						<a class='comment-avatar imagelink' href='/user/"+user.username+"' title='"+user.displayName+"'>\
+							<img src='"+getGravatar(user.email, 30)+"' />\
+						</a>\
+						<div class='comment-wrapper'>\
+							<a class='comment-user' href='/user/"+user.username+"'>"+user.displayName+"</a>\
+							<div class='comment-text'>"+comment.comment+"</div>";
+					if(canEdit) {
+						html += "\
+							<form class='deletecommentForm' action='"+req.path+"' method='POST'>\
+								"+dateFormat(comment.creationDate)+" \
+								<input name='card' type='hidden' value='"+card._id+"' />\
+								<input name='comment' type='hidden' value='"+i+"' />\
+								<input name='deletecomment' type='submit' value='Delete' />\
+							</form>\
+						";
+					} else {
+						html += dateFormat(comment.creationDate);
+					}
+					html += "\
+						</div>\
+					</div>\
+					";
+				}
+			} else { html += "<span class='nocomments'>[No comments]</span>"; }
+			return html;
+		};
+	//}END boardSnippets
 
 	exports.action.board = function(req, res) {
 		if(requiresLogin(req, res)) return;

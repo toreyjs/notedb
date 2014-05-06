@@ -10,6 +10,8 @@
 	function newElement(tag, attributes, parent) {
 		var element = document.createElement(tag);
 		if(attributes != undefined) {
+			if(attributes.class != undefined) { attributes.className = attributes.class; attributes.class = undefined; }
+			if(attributes.inner != undefined) { attributes.innerHTML = attributes.inner; attributes.inner = undefined; }
 			for(var key in attributes)
 				element[key] = attributes[key];
 		}
@@ -34,16 +36,12 @@
 
 var board = $$("#board");
 var overlay = $$("#overlay");
+var chat = new Chat();
 var socket = io.connect("//"+window.location.hostname);
-console.log(socket);
-//{REGION Sockets
-	socket.on('news', function (data) {
-		console.log(data);
-		socket.emit('my other event', { my: 'data' });
-	});
-//}END Sockets
 
 (function init() {
+	doSocketStuff();
+
 	window.addEventListener('resize', windowResized);
 	windowResized();
 
@@ -352,6 +350,81 @@ function addCardEvents(card) {
 		return false; // Stops form from auto-submitting so the javascript can handle it.
 	}
 //}END Event Handlers
+
+//{REGION Sockets
+	function doSocketStuff() {
+		// socket.on('news', function (data) {
+		// 	console.log(data);
+		// 	socket.emit('my other event', { my: 'data' });
+		// });
+
+		
+		//  $("#setNickName").click(function(){
+		// 	$("#setNickSpace").hide();
+		// 	$("#chat").show();
+		// 	chat.Connect($("#nickname").val(), $("#room").val());
+		// } );
+		if($$("#chat") != undefined) {
+			var displayname = $$("#userbox .userLink") != undefined ? $$("#userbox .userLink").innerHTML : "Guest";
+			chat.Connect(displayname, window.location.pathname);
+			
+			$('textarea#chatMessage').bind('keypress', function(e) {
+				if(e.keyCode==13){
+					sendMsg();
+				}
+			});
+			$("#sendChatMessage").click(function() {
+				sendMsg();
+			});
+			function sendMsg(){
+				var m = $("#chatMessage").val();
+				$("#chatMessage").val("");
+				chat.Send(m);
+			}
+			var today = new Date();
+			var offset = -(today.getTimezoneOffset()/60);
+		}
+	}
+
+	//http://www.ranu.com.ar/post/50418940422/redisstore-and-rooms-with-socket-io
+	function Chat(){
+		var MESSAGE_TYPE = Object.freeze({ SYSTEM:"system", USER:"user" });
+		var chatElement = $$("#chat");
+		var _nickname = "";
+		var _room = "";
+
+		this.Connect = function(nick, room){
+			_nickname = nick;
+			_room = room;
+
+			socket.on('connect', function (data) {
+				socket.emit('chatSignIn', {nick: nick, room: room});
+			});
+
+			socket.on("message", printMessage);
+		};
+
+		this.Send = function Send(msg) {
+			socket.emit("message", {msg: msg, nick: _nickname} , function(response) {
+				printMessage(response);
+			});
+		};
+
+		function printMessage(response) {
+			var type = response.type, message = response.msg, messageElement = "No message?";
+			switch(type) {
+				case MESSAGE_TYPE.SYSTEM:
+					messageElement = newElement("div", { class:"systemMessage", inner:message });
+					break;
+				case MESSAGE_TYPE.USER:
+					messageElement = newElement("div", { class:"userMessage", inner:("<span class='name'>"+response.nick+":</span> "+message) });
+					break;
+			}
+			chatElement.appendChild(messageElement);
+			chatElement.scrollTop = chatElement.scrollHeight;
+		}
+	}
+//}END Sockets
 
 //{REGION Helper Methods
 	function windowResized(e) {
