@@ -37,7 +37,12 @@
 var board = $$("#board");
 var overlay = $$("#overlay");
 var chat = new Chat();
-var socket = io.connect("//"+window.location.hostname);
+var socket = io.connect("//"+window.location.hostname
+	+(window.location.hostname == "localhost"
+		? ""
+		: ":"+(window.location.protocol == "http:" ? "8000" : "8443")
+	)
+);
 
 (function init() {
 	doSocketStuff();
@@ -370,6 +375,7 @@ function addCardEvents(card) {
 			
 			$('textarea#chatMessage').bind('keypress', function(e) {
 				if(e.keyCode==13){
+					e.preventDefault();
 					sendMsg();
 				}
 			});
@@ -377,9 +383,9 @@ function addCardEvents(card) {
 				sendMsg();
 			});
 			function sendMsg(){
-				var m = $("#chatMessage").val();
-				$("#chatMessage").val("");
-				chat.Send(m);
+				var chatMessage = $$("#chatMessage");
+				chat.Send(chatMessage.value);
+				chatMessage.value = "";
 			}
 			var today = new Date();
 			var offset = -(today.getTimezoneOffset()/60);
