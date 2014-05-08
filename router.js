@@ -18,6 +18,7 @@ module.exports = function(app, handles) {
 	app.get(	'/', handles.page.home);
 	both(a,h,	'/login', 'login');
 	app.get(	'/logout', handles.action.logout);
+	app.get(	'/search', handles.page.search);
 	both(a,h,	'/newuser', 'newUser');
 	both(a,h,	'/createboard', 'createBoard');
 	both(a,h,	'/createorganization', 'createOrganization');

@@ -59,6 +59,12 @@ function getNav() {
 	<a href='/staff'>Staff Dashboard</a>\
 	<a href='/404'>404</a>\
 	<a href='/other/Syllabus.htm'>Syllabus</a>\
+	<span class='headerlinkborder'></span>\
+	<form style='display:inline-block; vertical-align:bottom;' method='GET' action='/search'>\
+		<input type='text' name='q' />\
+		<input type='hidden' name='boards' value='1' />\
+		<input type='submit' value='🔍 Search' />\
+	</form>\
 	";
 	return html;
 }
@@ -78,6 +84,7 @@ function getUserbox(req)
 		result = "\
 		<div id='userbox'>\
 			<span style='float:right; text-align:right;'>\
+				<span id='alertContainer'></span>\
 				<a class='userLink' style='color:#888; font-size:125%; display:inline-block; margin-right:3px;' href='/user/"+user.username+"'>"+user.displayName+"</a>\
 				<br />\
 				<a href='/user/"+user.username+"/settings'>Settings</a>\

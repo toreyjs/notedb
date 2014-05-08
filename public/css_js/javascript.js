@@ -411,19 +411,20 @@ function addCardEvents(card) {
 		};
 
 		this.Send = function Send(msg) {
-			socket.emit("message", {msg: msg, nick: _nickname} , function(response) {
-				printMessage(response);
-			});
+			socket.emit("message", {msg: msg, nick: _nickname});
 		};
 
 		function printMessage(response) {
-			var type = response.type, message = response.msg, messageElement = "No message?";
+			var type = response.type, message = response.msg, messageElement;
 			switch(type) {
 				case MESSAGE_TYPE.SYSTEM:
 					messageElement = newElement("div", { class:"systemMessage", inner:message });
 					break;
 				case MESSAGE_TYPE.USER:
 					messageElement = newElement("div", { class:"userMessage", inner:("<span class='name'>"+response.nick+":</span> "+message) });
+					break;
+				default:
+					messageElement = newElement("div", { inner:message });
 					break;
 			}
 			chatElement.appendChild(messageElement);

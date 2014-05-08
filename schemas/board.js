@@ -4,7 +4,7 @@ var Schema, Model;
 
 Schema = new mongoose.Schema({
 	boardName	: { type: String, required: true },
-	boardType	: { type:Number, required: true, 'default': 0 }, /* 0:public, 1:private, 2:viewable by organization members */
+	boardType	: { type:Number, required: true, 'default': 0 }, /* 0:public, 1:private */
 	users		: [{
 		userID	: { type: mongoose.Schema.ObjectId, required: true },
 		access	: { type: Number, required: true, 'default': 0 }, /* 0:none (viewing), 1:normal (editing), 2:admin (can add users, etc), 3:bureaucrat (add users, admins, and other bereaucrats [creater of board is automatically this])  */

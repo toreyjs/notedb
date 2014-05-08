@@ -33,18 +33,41 @@ var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 // db.once('open', function() { console.log("yay"); });
 
+// var app = express();
+// app.use(lessMiddleware(__dirname+"/public", { compress : true }));
+// app.use(express.static(__dirname + '/public'));
+// app.use(express.cookieParser(config.cookieSecret));
+// app.use(express.bodyParser());
+// app.use(express.session({cookie: { path: '/', httpOnly: true, maxAge: null}, secret:config.cookieSecret}));
+
+var cookieParser = express.cookieParser(config.cookieSecret);
+var sessionStore = require('sessionstore').createSessionStore();
+
 var app = express();
-app.use(lessMiddleware(__dirname+"/public", { compress : true }));
-app.use(express.static(__dirname + '/public'));
-app.use(express.cookieParser('JuniperBarriesD4wg'));
-app.use(express.bodyParser());
-app.use(express.session({cookie: { path: '/', httpOnly: true, maxAge: null}, secret:'JuniperBarriesD4wg!'}));
+
+app.configure(function(){
+  app.use(lessMiddleware(__dirname+"/public", { compress : true }));
+  app.use(express.static(__dirname + '/public'));
+  app.use(cookieParser);
+  app.use(express.bodyParser()); // Lets me do req.body.var
+  app.use(express.session({secret: config.cookieSecret, store: sessionStore}));
+  app.use(app.router);
+});
 
 router(app, requestHandlers);
-app.use(app.router);
 
 var server = app.listen(config.port, config.host);
 var io = require('socket.io').listen(server, { log: false });
+io.configure(function(){
+  // https://github.com/AustP/session.io/blob/master/examples/test.js
+  //use session.io to get our session data
+  io.set('authorization', require('session.io')(cookieParser, sessionStore));
+});
+io.configure('production', function(){
+  io.enable('browser client minification');  // send minified client
+  io.enable('browser client etag');          // apply etag caching logic based on version number
+  io.enable('browser client gzip');          // gzip the file
+});
 sockets.start(io);
 
 // Original

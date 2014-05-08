@@ -2,6 +2,8 @@
 var host = process.env.OPENSHIFT_NODEJS_IP || "localhost";//"127.0.0.1";
 var port = process.env.OPENSHIFT_NODEJS_PORT || 8080;
 
+var cookieSecret = "JuniperBarriesD4wg!";
+
 // https://www.openshift.com/blogs/getting-started-with-mongodb-on-nodejs-hosting
 (database = {}).URI = "mongodb://";
 if(process.env.OPENSHIFT_MONGODB_DB_PASSWORD){
@@ -17,5 +19,6 @@ if(process.env.OPENSHIFT_MONGODB_DB_PASSWORD){
 module.exports = {
 	port: port,
 	host: host,
+	cookieSecret: cookieSecret,
 	database: database
 };

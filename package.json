@@ -29,7 +29,9 @@
     "less-middleware": "~0.2.1-beta",
     "mongodb": "~1.3.23",
     "mongoose": "~3.8.8",
-    "socket.io": "~0.9.16"
+	"sessionstore": "~0.4.5",
+    "socket.io": "~0.9.16",
+	"session.io": "1.0.0"
   },
   "devDependencies": {},
   "bundleDependencies": [],

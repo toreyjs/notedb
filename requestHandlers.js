@@ -5,6 +5,7 @@ exports.page = {};
 	var pageBuilder = require('./html.js');
 	var util = require('util');
 	var mongoose = require('mongoose');
+	var sockets = require("./sockets");
 	var User = require('./schemas/user.js').model;
 	var Board = require('./schemas/board.js').model;
 	var Organization = require('./schemas/organization.js').model;
@@ -124,6 +125,140 @@ exports.page.home = function(req, res) {
 		writePage(res, pageBuilder.buildPage(html, "Home", req, res, res.submitMessage ));
 	}
 };
+
+//{REGION Search
+	exports.page.search = function(req, res) {
+		var html = "", results = [], perPage = 15;
+		var get = req.query, q = get.q, page = 1;
+		var searchTerms = (q ? q.split(" ") : q);
+		var user = req.session.user;
+		
+		if(q) search(); else finish();
+		
+		function search() {
+			var steps = makeSteps(); steps.steps = [];
+			if(get.boards) { steps.steps.push(doBoards); }
+			steps.steps.push(finish);
+			steps.nextStep();
+			
+			function doBoards() {
+				var myBoards = [];
+				// Show boards only available to user first
+				if(user) privateBoards();
+				else publicBoards();
+					
+				function privateBoards() {
+					// Find all private boards to which this user belongs
+					Board.find({ boardType:1 }).elemMatch("users", { userID: user._id }).exec(function(err, boards) {
+						forEach(boards, function(board) { myBoards.push(board); });
+						orgBoards();
+					});
+				}
+				
+				function orgBoards() {
+					Organization.findByUser(user._id, function(err, organizations) {
+						if(organizations) {
+							var i = -1;
+							checkEachOrgBoards();
+							
+							function checkEachOrgBoards() {
+								i++;
+								console.log("hi");
+								if(i < organizations.length) {
+									// Find all Board in organization that are private
+									Board.find({ organizationID: organizations[i]._id, boardType:1 }, null, {}).exec(function(err, boards) {
+										if(boards) {
+											forEach(boards, function(board) {
+												if(!arrayContainsSameObj(myBoards, board)) {
+													myBoards.push(board);
+												}
+											});
+										}
+										checkEachOrgBoards();
+									});
+								} else {
+									checkPrivateSlashOrgBoards();
+								}
+							}
+						} else {
+							checkPrivateSlashOrgBoards();
+						}
+					});
+				}
+					
+				function checkPrivateSlashOrgBoards() {
+					forEach(myBoards, function(board) {
+						checkBoard(board);
+					});
+					steps.nextStep();
+				}
+				
+				function publicBoards() {
+					// Search public boards
+					Board.find({ boardType:0 }, null, { skip:((page-1)*perPage), limit:perPage }).exec(function(err, boards) {
+						forEach(boards, function(board) {
+							checkBoard(board);
+						});
+						steps.nextStep();
+					});
+				}
+				
+				function checkBoard(board) {
+					for (var i = 0; i < searchTerms.length; i++) {
+						var term = searchTerms[i];
+						if((board.boardName.toLowerCase()).indexOf(term.toLowerCase()) != -1) {
+							results.push({ url:"/board/"+board._id, page:board.boardName, match:board.boardName });
+						}
+					}
+				}
+			}
+		}
+		
+		function finish() {
+			html += "\
+			<div id='searchPage'>\
+				<form method='GET' action='/search'>\
+					<input type='text' name='q' "+( q ? "value='"+q+"'" : "" )+" />\
+					<input type='submit' value='🔍 Search' />\
+					\
+					<div id='resultOptions'>\
+						<h3>Search Options</h3>\
+						<label for='boards'><input type='checkbox' name='boards' value='1' "+(get.boards ? "checked" : "")+" /> Board Names</label>\
+					</div>\
+				</form>\
+				\
+				<div class='results'>\
+					"+(q ? "<p>Results for: <b>"+q+"</b>"+(user ? "" : " (log in for more potential results)")+"</p>" : "")+"\
+					"+printResults(results)+"\
+				</div>\
+			</div>\
+			";
+			
+			function printResults(results) {
+				var message = "";
+				if(results.length > 0) {
+					for (var i = 0; i < results.length; i++) {
+						var result = results[i];
+						
+						message += "\
+						<div class='result'>\
+							<h4><a href='"+result.url+"'>"+result.page+"</a></h4>\
+							<p>"+result.match+"</p>\
+							<i><a href='"+result.url+"'>"+req.host+result.url+"</a></i>\
+						</div>\
+						";
+					};
+				} else {
+					message = "No Results.";
+				}
+				
+				return message;
+			}
+			
+			writePage(res, pageBuilder.buildPage(html, "Search", req, res, res.submitMessage));
+		}
+	};
+//}END Search
 
 //{REGION Users
 	exports.page.user = function(req, res) {
@@ -634,6 +769,7 @@ exports.page.home = function(req, res) {
 											<br /><a class='removeboarduser'>Remove</a>\
 										</span>\
 										";
+										sockets.userAddedToBoard(user, board);
 										sendJSResponse(html);
 									});
 								} else {
@@ -1472,7 +1608,19 @@ exports.page.home = function(req, res) {
 	}
 
 	/* Callback returns: Value, Key */
+	function forEach(array, callback) {
+		for(var i = 0; i < array.length; i++) { callback(array[i], i); }
+	}
+
+	/* Callback returns: Value, Key */
 	function forEachInAssoc(array, callback) {
 		for(var key in array) { callback(array[key], key); }
+	}
+	
+	function arrayContainsSameObj(array, obj) {
+		for(var i=0; i<array.length; i++) {
+			if (array[i] === obj) return true;
+		}
+		return false;
 	}
 //}END Helper Functions
