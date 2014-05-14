@@ -163,7 +163,6 @@ exports.page.home = function(req, res) {
 							
 							function checkEachOrgBoards() {
 								i++;
-								console.log("hi");
 								if(i < organizations.length) {
 									// Find all Board in organization that are private
 									Board.find({ organizationID: organizations[i]._id, boardType:1 }, null, {}).exec(function(err, boards) {
@@ -270,6 +269,7 @@ exports.page.home = function(req, res) {
 				html += "<a href='http://en.gravatar.com/'><img src='"+imgSrc+"' alt=\""+user.displayName+"'s' Gravatar\" title=\""+user.displayName+"'s Gravatar\" /></a>";
 
 				html += "<p><b>Creation Date:</b> "+dateFormat(user.creationDate)+"</p>";
+				html += "<p><b>ID:</b> "+user._id+"</p>";
 				writePage(res, pageBuilder.buildPage(html, user.displayName, req, res, res.submitMessage ));
 			} else {
 				exports.page.page404(req, res);
@@ -776,7 +776,7 @@ exports.page.home = function(req, res) {
 									sendJSFail("User already on board.");
 								}
 							} else {
-								sendJSFail("No user by the username <i>"+username+"</i> exists. Are you sure you entered thier username and not thier display name?");
+								sendJSFail("No user by the username <i>"+username+"</i> exists. Are you sure you entered their username and not their display name?");
 							}
 						});
 					}
@@ -1159,6 +1159,16 @@ exports.page.home = function(req, res) {
 		}
 	};
 //}END Boards
+
+//{REGION Notifications
+	exports.page.notifications = function(req, res) {
+		
+	}
+	
+	exports.action.notifications = function(req, res) {
+		
+	}
+//}END Notifications
 
 //{REGION Organizations
 	exports.page.organization = function(req, res) {

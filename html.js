@@ -84,7 +84,27 @@ function getUserbox(req)
 		result = "\
 		<div id='userbox'>\
 			<span style='float:right; text-align:right;'>\
-				<span id='alertContainer'></span>\
+				<span id='alertContainer'>\
+					<span class='alert' "+(user.notifications.length == 0 ? "style='visibility:hidden;'" : "")+">"+user.notifications.length+"</span>\
+					<div class='notificationsContainer'>\
+						<h3>Notifications</h3>\
+						<button id='readAllNotifications'>Mark all as read</button>\
+						<div class='notifications'>\
+						"+(function(){
+							var message = "";
+							for (var i = 0; i < user.notifications.length; i++) {
+								var note = user.notifications[i];
+								message += "\
+								<div class='notification' data-id='"+note._id+"'>\
+									"+note.message+"\
+								</div>\
+								";
+							}
+							return message;
+						})()+"\
+						</div>\
+					</div>\
+				</span>\
 				<a class='userLink' style='color:#888; font-size:125%; display:inline-block; margin-right:3px;' href='/user/"+user.username+"'>"+user.displayName+"</a>\
 				<br />\
 				<a href='/user/"+user.username+"/settings'>Settings</a>\

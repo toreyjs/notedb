@@ -43,14 +43,71 @@ option[disabled] { text-decoration:line-through; }
 .menu { white-space:nowrap; display:none; position:absolute; padding:3px 5px; margin-top:1px; background:#666; }
 .drop:hover+.menu, .menu:hover { display:block; }
 
-header { position:relative; padding: 3px 5px 15px 35px; margin:7px 7px 2px; background:#444; min-height:50px; border-bottom:3px solid #666; border-radius:0 0 4px 4px; }
-header * { background:transparent; }
-header h1 { color:black; display:inline-block; font-size:200%; margin:0; padding:0; }
-header nav { display:block; margin-left:15px; padding:2px 3px 5px; position:absolute; bottom:0; }
-header nav a+a, header nav a+.headerlinkborder, header nav .headerlinkborder+a { border-left:2px solid #666; padding-left:5px; }
-header #userbox { float:right; height:46px; border:2px inset #DDD; background:#333; }
-header #userbox img { margin:1px; border:1px solid #000; }
-header #userbox .alert { display:inline-block; color:darkred; background:red; padding:0 3px; border-radius:3px; line-height:14px; font-size:85%; font-weight:bold; }
+header {
+	position:relative;
+	padding: 3px 5px 15px 35px;
+	margin:7px 7px 2px;
+	background:#444;
+	min-height:50px;
+	border-bottom:3px solid #666;
+	border-radius:0 0 4px 4px;
+	
+	h1 { color:black; display:inline-block; font-size:200%; margin:0; padding:0; }
+	nav { display:block; margin-left:15px; padding:2px 3px 5px; position:absolute; bottom:0; }
+	nav a+a, nav a+.headerlinkborder, nav .headerlinkborder+a { border-left:2px solid #666; padding-left:5px; }
+	
+	#userbox {
+		float:right;
+		height:46px;
+		border:2px inset #DDD;
+		background:#333;
+		
+		img { margin:1px; border:1px solid #000; }
+		#alertContainer {
+			position: relative;
+			
+			.alert {
+				display:inline-block;
+				color:darkred;
+				background:red;
+				padding:0 3px;
+				border-radius:3px;
+				line-height:14px;
+				font-size:85%;
+				font-weight:bold;
+				cursor:pointer;
+			}
+			.notificationsContainer {
+				visibility	: hidden;
+				text-align	: left;
+				display		: block;
+				position	: absolute;
+				top			: 20px;
+				right		: 0;
+				width		: 400px;
+				height		: 300px;
+				overflow	: auto;
+				border		: 2px solid #DDD;
+				border-radius: 3px;
+				background	: #BBB;
+				box-shadow	: 0 0 8px 3px #DDD;
+				z-index		: 9;
+				
+				h3 { display:inline-block; }
+				
+				.notifications {
+					.notification {
+						padding:3px 5px;
+						border:1px solid #999;
+						cursor:pointer;
+						
+						&:hover { background: #CCC; }
+					}
+				}
+			}
+		}
+	}
+}
 
 #overlay {
 	display	: none;

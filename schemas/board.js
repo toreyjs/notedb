@@ -6,7 +6,7 @@ Schema = new mongoose.Schema({
 	boardName	: { type: String, required: true },
 	boardType	: { type:Number, required: true, 'default': 0 }, /* 0:public, 1:private */
 	users		: [{
-		userID	: { type: mongoose.Schema.ObjectId, required: true },
+		userID	: { type: mongoose.Schema.ObjectId, required: true, unique: true },
 		access	: { type: Number, required: true, 'default': 0 }, /* 0:none (viewing), 1:normal (editing), 2:admin (can add users, etc), 3:bureaucrat (add users, admins, and other bereaucrats [creater of board is automatically this])  */
 		joinDate: { type: Date, 'default': Date.now }
 	}],
@@ -57,7 +57,7 @@ Schema.methods.containsUser = function(userID) {
 	var contains = false;
 	for(var i = 0; i < this.users.length; i++) {
 		var user = this.users[i];
-		if(user.userID == userID) {
+		if(user.userID.toString() == userID.toString()) {
 			contains = true;
 			break;
 		}

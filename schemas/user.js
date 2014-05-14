@@ -8,6 +8,9 @@ Schema = new mongoose.Schema({
 	email		: { type: String, required: true, match: /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i },
 	access		: { type: Number, required: true, 'default': 0 }, /* 0:normal, 1:???, 2:staff */
 	displayName	: { type: String, required: true },
+	notifications: [{
+		message	: { type: String, required: true }
+	}],
 	creationDate: { type: Date, 'default': Date.now }
 });
 
