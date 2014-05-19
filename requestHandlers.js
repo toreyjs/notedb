@@ -31,9 +31,8 @@ exports.page = {};
 				<a href='/newuser'>Create new account</a>\
 			</div>\
 			";
-
-			var page = pageBuilder.buildPage(html, "Login", req, res, res.submitMessage);
-			writePage(res, page);
+			
+			writePage(html, "Login", req, res);
 		}
 	};
 
@@ -122,7 +121,7 @@ exports.page.home = function(req, res) {
 	}
 
 	function finish() {
-		writePage(res, pageBuilder.buildPage(html, "Home", req, res, res.submitMessage ));
+		writePage(html, "Home", req, res);
 	}
 };
 
@@ -132,12 +131,13 @@ exports.page.home = function(req, res) {
 		var get = req.query, q = get.q, page = 1;
 		var searchTerms = (q ? q.split(" ") : q);
 		var user = req.session.user;
+		var checkPublic = (user ? get.checkPublic : true);
 		
 		if(q) search(); else finish();
 		
 		function search() {
 			var steps = makeSteps(); steps.steps = [];
-			if(get.boards) { steps.steps.push(doBoards); }
+			if(get.boards || get.sections || get.cards || get.comments) { steps.steps.push(doBoards); }
 			steps.steps.push(finish);
 			steps.nextStep();
 			
@@ -149,65 +149,146 @@ exports.page.home = function(req, res) {
 					
 				function privateBoards() {
 					// Find all private boards to which this user belongs
-					Board.find({ boardType:1 }).elemMatch("users", { userID: user._id }).exec(function(err, boards) {
-						forEach(boards, function(board) { myBoards.push(board); });
+					if(get.checkPrivate) {
+						Board.find({ boardType:1 }).elemMatch("users", { userID: user._id }).exec(function(err, boards) {
+							forEach(boards, function(board) { myBoards.push(board); });
+							orgBoards();
+						});
+					} else {
 						orgBoards();
-					});
+					}
 				}
 				
 				function orgBoards() {
-					Organization.findByUser(user._id, function(err, organizations) {
-						if(organizations) {
-							var i = -1;
-							checkEachOrgBoards();
-							
-							function checkEachOrgBoards() {
-								i++;
-								if(i < organizations.length) {
-									// Find all Board in organization that are private
-									Board.find({ organizationID: organizations[i]._id, boardType:1 }, null, {}).exec(function(err, boards) {
-										if(boards) {
-											forEach(boards, function(board) {
-												if(!arrayContainsSameObj(myBoards, board)) {
-													myBoards.push(board);
-												}
-											});
-										}
-										checkEachOrgBoards();
-									});
-								} else {
-									checkPrivateSlashOrgBoards();
+					if(get.checkOrg) {
+						Organization.findByUser(user._id, function(err, organizations) {
+							if(organizations) {
+								var i = -1;
+								checkEachOrgBoards();
+								
+								function checkEachOrgBoards() {
+									i++;
+									if(i < organizations.length) {
+										// Find all Board in organization that are private
+										Board.find({ organizationID: organizations[i]._id, boardType:1 }, null, {}).exec(function(err, boards) {
+											if(boards) {
+												forEach(boards, function(board) {
+													if(!arrayContainsSameObj(myBoards, board)) {
+														myBoards.push(board);
+													}
+												});
+											}
+											checkEachOrgBoards();
+										});
+									} else {
+										publicBoards();
+									}
 								}
+							} else {
+								publicBoards();
 							}
-						} else {
-							checkPrivateSlashOrgBoards();
-						}
-					});
+						});
+					} else {
+						publicBoards();
+					}
 				}
+				
+				function publicBoards() {
+					// Search public boards
+					if(checkPublic) {
+						Board.find({ boardType:0 }, null, { skip:((page-1)*perPage), limit:perPage }).exec(function(err, boards) {
+							forEach(boards, function(board) { myBoards.push(board); });
+							checkMyBoards();
+						});
+					} else {
+						checkMyBoards();
+					}
 					
-				function checkPrivateSlashOrgBoards() {
+					// Board.find({ boardType:0 }, null, { skip:((page-1)*perPage), limit:perPage }).exec(function(err, boards) {
+					// 	forEach(boards, function(board) {
+					// 		checkBoard(board);
+					// 	});
+					// 	steps.nextStep();
+					// });
+				}
+				
+				function checkMyBoards() {
 					forEach(myBoards, function(board) {
 						checkBoard(board);
 					});
 					steps.nextStep();
 				}
 				
-				function publicBoards() {
-					// Search public boards
-					Board.find({ boardType:0 }, null, { skip:((page-1)*perPage), limit:perPage }).exec(function(err, boards) {
-						forEach(boards, function(board) {
-							checkBoard(board);
-						});
-						steps.nextStep();
-					});
-				}
-				
 				function checkBoard(board) {
+					//var boardNameMatches = { phrase:"", terms:[] };
+					var boardNameText = null, sectionTitleText = null, cardTitleText = null, cardDescText = null, commentText = null;
+										
+					var phrase = "";
 					for (var i = 0; i < searchTerms.length; i++) {
 						var term = searchTerms[i];
-						if((board.boardName.toLowerCase()).indexOf(term.toLowerCase()) != -1) {
-							results.push({ url:"/board/"+board._id, page:board.boardName, match:board.boardName });
+						
+						if(get.boards && ((phrase = board.boardName).toLowerCase()).indexOf(term.toLowerCase()) != -1) {
+							if(boardNameText == null) boardNameText = phrase;
+							boardNameText = highlight(boardNameText, term);
 						}
+						
+						if(get.sections || get.cards || get.comments) {
+							var sections = board.sections;
+							for (var j = 0; j < sections.length; j++) {
+								var section = sections[j];
+								if(get.sections && ((phrase = section.title).toLowerCase()).indexOf(term.toLowerCase()) != -1) {
+									//results.push({ url:"/board/"+board._id, page:board.boardName, match:"<b>Section Title</b>: "+section.title });
+									if(sectionTitleText == null) sectionTitleText = phrase;
+									sectionTitleText = highlight(sectionTitleText, term);
+								}
+								
+								if(get.cards || get.comments) {
+									var cards = section.cards;
+									for (var k = 0; k < cards.length; k++) {
+										var card = cards[k];
+										if(get.cards) {
+											if(((phrase = card.title).toLowerCase()).indexOf(term.toLowerCase()) != -1) {
+												//results.push({ url:"/board/"+board._id, page:board.boardName, match:"<b>Card title</b>: "+card.title });
+												if(cardTitleText == null) cardTitleText = phrase;
+												cardTitleText = highlight(cardTitleText, term);
+											} else if(((phrase = card.description).toLowerCase()).indexOf(term.toLowerCase()) != -1) {
+												//results.push({ url:"/board/"+board._id, page:board.boardName, match:"<b>Card Description</b>: "+card.description });
+												if(cardDescText == null) cardDescText = phrase;
+												cardDescText = highlight(cardDescText, term);
+											}
+										}
+										
+										if(get.comments) {
+											var comments = card.comments;
+											for (var l = 0; l < comments.length; l++) {
+												var comment = comments[l];
+												if(get.comments && ((phrase = comment.comment).toLowerCase()).indexOf(term.toLowerCase()) != -1) {
+													//results.push({ url:"/board/"+board._id, page:board.boardName, match:"<b>Comment</b>: "+comment.comment });
+													if(commentText == null) commentText = phrase;
+													commentText = highlight(commentText, term);
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+					
+					// for (var i = 0; i < boardNameMatches.terms.length; i++) {
+					// 	var term = boardNameMatches.terms[i];
+					// 	boardNameMatches.phrase = boardNameMatches.phrase.replace(term, "<b>"+term+"</b>");
+					// }
+					var result = "";
+					if(boardNameText != null) result += "<br /><code><b>Board Name</b>&nbsp;&nbsp;&nbsp;</code>: "+boardNameText;
+					if(sectionTitleText != null) result += "<br /><code><b>Section Title</b></code>: "+sectionTitleText;
+					if(cardTitleText != null) result += "<br /><code><b>Card Title</b>&nbsp;&nbsp;&nbsp;</code>: "+cardTitleText;
+					if(cardDescText != null) result += "<br /><code><b>Card Desc.</b>&nbsp;&nbsp;&nbsp;</code>: "+cardDescText;
+					if(commentText != null) result += "<br /><code><b>Comment</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code>: "+commentText;
+					
+					if(result != "") {
+						result = result.slice(6, result.length);
+						results.push({ url:"/board/"+board._id, page:board.boardName, match:result });
 					}
 				}
 			}
@@ -223,6 +304,18 @@ exports.page.home = function(req, res) {
 					<div id='resultOptions'>\
 						<h3>Search Options</h3>\
 						<label for='boards'><input type='checkbox' name='boards' value='1' "+(get.boards ? "checked" : "")+" /> Board Names</label>\
+						<label for='sections'><input type='checkbox' name='sections' value='1' "+(get.sections ? "checked" : "")+" /> Section Titles</label>\
+						<label for='cards'><input type='checkbox' name='cards' value='1' "+(get.cards ? "checked" : "")+" /> Cards</label>\
+						<label for='comments'><input type='checkbox' name='comments' value='1' "+(get.comments ? "checked" : "")+" /> Card Comments</label>\
+						"+(user ? (function(){
+							return "\
+							<hr />\
+							Search boards that are: \
+							<label for='checkPublic'><input type='checkbox' name='checkPublic' value='1' "+(get.checkPublic ? "checked" : "")+" /> Public</label>\
+							<label for='checkPrivate'><input type='checkbox' name='checkPrivate' value='1' "+(get.checkPrivate ? "checked" : "")+" /> Private</label>\
+							<label for='checkOrg'><input type='checkbox' name='checkOrg' value='1' "+(get.checkOrg ? "checked" : "")+" /> Organization Only</label>\
+							";
+						})() : "")+"\
 					</div>\
 				</form>\
 				\
@@ -254,7 +347,7 @@ exports.page.home = function(req, res) {
 				return message;
 			}
 			
-			writePage(res, pageBuilder.buildPage(html, "Search", req, res, res.submitMessage));
+			writePage(html, "Search", req, res);
 		}
 	};
 //}END Search
@@ -270,7 +363,7 @@ exports.page.home = function(req, res) {
 
 				html += "<p><b>Creation Date:</b> "+dateFormat(user.creationDate)+"</p>";
 				html += "<p><b>ID:</b> "+user._id+"</p>";
-				writePage(res, pageBuilder.buildPage(html, user.displayName, req, res, res.submitMessage ));
+				writePage(html, user.displayName, req, res);
 			} else {
 				exports.page.page404(req, res);
 			}
@@ -313,7 +406,7 @@ exports.page.home = function(req, res) {
 				</table>\
 			</form>\
 			";
-			writePage(res, pageBuilder.buildPage(html, "Settings", req, res, res.submitMessage ));
+			writePage(html, "Settings", req, res);
 		});
 	};
 
@@ -374,7 +467,7 @@ exports.page.home = function(req, res) {
 		</form>\
 		";
 		
-		writePage(res, pageBuilder.buildPage(html, "Create Account", req, res, res.submitMessage));
+		writePage(html, "Create Account", req, res);
 	};
 
 	exports.action.newUser = function(req, res) {
@@ -510,13 +603,13 @@ exports.page.home = function(req, res) {
 									</div>\
 								</div>\
 								";
-								writePage(res, html);
+								writeHTML(res, html);
 							}
 						}
-						else { writePage(res, "No such card! (404)"); }
+						else { writeHTML(res, "No such card! (404)"); }
 					});
 				}
-				else { writePage(res, "You messed something up! (404)"); }
+				else { writeHTML(res, "You messed something up! (404)"); }
 			} else {
 				var boardUsers = {};
 				var steps = makeSteps(getBoardUsers, finish);
@@ -650,7 +743,7 @@ exports.page.home = function(req, res) {
 						</aside>\
 						";
 					html += "</div><!--End #board-->";
-					writePage(res, pageBuilder.buildPage(html, board.boardName, req, res, res.submitMessage ));
+					writePage(html, board.boardName, req, res);
 				}
 			}
 		  });
@@ -827,6 +920,7 @@ exports.page.home = function(req, res) {
 								function sendMsg() {
 									var html = boardSnippets.listAttachedCardUsers(req, card, attachedUsers, true);
 									sendJSResponse(html);
+									sockets.userAddedToCard(card, board);
 								}
 							});
 						});
@@ -855,6 +949,7 @@ exports.page.home = function(req, res) {
 								function sendMsg() {
 									var html = boardSnippets.listCardComments(req, commentUsers, card, true);
 									sendJSResponse(html);
+									sockets.commentAddedToCard(card, board);
 								}
 							});
 						});
@@ -877,6 +972,7 @@ exports.page.home = function(req, res) {
 							card.title = title;
 							board.save(function(err, board) {
 								sendJSResponse( boardSnippets.cardTitle(req, card, true) );
+								sockets.cardEdited(card, board);
 							});
 						});
 					}
@@ -888,6 +984,7 @@ exports.page.home = function(req, res) {
 							card.description = description;
 							board.save(function(err, board) {
 								sendJSResponse( boardSnippets.cardDescription(req, card, true) );
+								sockets.cardEdited(card, board);
 							});
 						});
 					}
@@ -899,6 +996,7 @@ exports.page.home = function(req, res) {
 							card.priority = priority;
 							board.save(function(err, board) {
 								sendJSResponse( boardSnippets.cardPriority(req, card, true) );
+								sockets.cardEdited(card, board);
 							});
 						});
 					}
@@ -960,7 +1058,7 @@ exports.page.home = function(req, res) {
 							if(board.users[i].userID == userID) {
 								board.users[i].remove();
 								board.save(function(err, board) {
-									writePage(res, "User has successfully been removed from the board.");
+									writeHTML(res, "User has successfully been removed from the board.");
 									return;
 								});
 								break;
@@ -1004,11 +1102,11 @@ exports.page.home = function(req, res) {
 		}
 
 		function sendJSResponse(msg) {
-			writePage(res, msg);
+			writeHTML(res, msg);
 		}
 
 		function sendJSFail(msg) {
-			writePage(res, msg, { code:404 });
+			writeHTML(res, msg, { code:404 });
 		}
 	};
 
@@ -1033,7 +1131,7 @@ exports.page.home = function(req, res) {
 				<input type='submit' name='delete' value='Delete Board' />\
 			</form>\
 			";
-			writePage(res, pageBuilder.buildPage(html, board.boardName, req, res, res.submitMessage ));
+			writePage(html, board.boardName, req, res);
 		});
 	};
 
@@ -1099,7 +1197,7 @@ exports.page.home = function(req, res) {
 		}
 
 		function finish() {
-			writePage(res, pageBuilder.buildPage(html, "Create New Board", req, res, res.submitMessage ));
+			writePage(html, "Create New Board", req, res);
 		}
 	};
 
@@ -1160,16 +1258,6 @@ exports.page.home = function(req, res) {
 	};
 //}END Boards
 
-//{REGION Notifications
-	exports.page.notifications = function(req, res) {
-		
-	}
-	
-	exports.action.notifications = function(req, res) {
-		
-	}
-//}END Notifications
-
 //{REGION Organizations
 	exports.page.organization = function(req, res) {
 		var orgId = req.params.organization;
@@ -1201,7 +1289,7 @@ exports.page.home = function(req, res) {
 						";
 						html += "<a style='float:right;' href='/organization/"+orgId+"/settings'>Edit Settings</a>";
 					}
-					writePage(res, pageBuilder.buildPage(html, org.name, req, res, res.submitMessage ));
+					writePage(html, org.name, req, res);
 				});
 			} else {
 				exports.page.page404(req, res);
@@ -1256,7 +1344,7 @@ exports.page.home = function(req, res) {
 				<input type='submit' name='delete' value='Delete Organization' />\
 			</form>\
 			";
-			writePage(res, pageBuilder.buildPage(html, org.name, req, res, res.submitMessage ));
+			writePage(html, org.name, req, res);
 		});
 	};
 
@@ -1287,7 +1375,7 @@ exports.page.home = function(req, res) {
 			<p><input type='submit' value='Create Organization' /></p>\
 		</form>";
 
-		writePage(res, pageBuilder.buildPage(html, "Create New Organization", req, res, res.submitMessage ));
+		writePage(html, "Create New Organization", req, res);
 	};
 
 	exports.action.createOrganization = function(req, res) {
@@ -1339,7 +1427,7 @@ exports.page.home = function(req, res) {
 				</ul>\
 				";
 			}
-			writePage(res, pageBuilder.buildPage(html, "Staff Dashboard", req, res, res.submitMessage ));
+			writePage(html, "Staff Dashboard", req, res);
 		});
 	};
 
@@ -1403,7 +1491,7 @@ exports.page.home = function(req, res) {
 				</form>";
 			}
 
-			writePage(res, pageBuilder.buildPage(html, "User Rights", req, res, res.submitMessage ));
+			writePage(html, "User Rights", req, res);
 		}
 
 		function ListUsers(req, res) {
@@ -1437,7 +1525,7 @@ exports.page.home = function(req, res) {
 			}
 
 			function finish() {
-				writePage(res, pageBuilder.buildPage(html, "List Users", req, res, res.submitMessage ));
+				writePage(html, "List Users", req, res);
 			}
 		}
 
@@ -1472,7 +1560,7 @@ exports.page.home = function(req, res) {
 			}
 
 			function finish() {
-				writePage(res, pageBuilder.buildPage(html, "List Organizations", req, res, res.submitMessage ));
+				writePage(html, "List Organizations", req, res);
 			}
 		}
 	};
@@ -1516,17 +1604,20 @@ exports.page.home = function(req, res) {
 //{REGION Error Pages
 	exports.page.page403 = function(req, res) {
 		var html = "<strong>You do not have the correct permissions to view this page.</strong>";
-		writePage(res, pageBuilder.buildPage(html, "403", req, res, { type:"error", message:"HTTP Status Code: 403" }), { code:403 });
+		res.submitMessage = { type:"error", message:"HTTP Status Code: 403" };
+		writePage(html, "403", req, res, { code:403 });
 	};
 
 	exports.page.page404 = function(req, res) {
 		var html = "<strong>That web page doesn't exist.</strong>";
-		writePage(res, pageBuilder.buildPage(html, "404", req, res, { type:"error", message:"HTTP Status Code: 404" }), { code:404 });
+		res.submitMessage = { type:"error", message:"HTTP Status Code: 404" };
+		writePage(html, "404", req, res, { code:404 });
 	};
 
 	exports.action.page404 = function(req, res) {
 		var html = "<strong>You cannot post to this web address.</strong>";
-		writePage(res, pageBuilder.buildPage(html, "404", req, res, { type:"error", message:"HTTP Status Code: 404" }), { code:404 });
+		res.submitMessage = { type:"error", message:"HTTP Status Code: 404" };
+		writePage(html, "404", req, res, { code:404 });
 	};
 //}END Error Pages
 
@@ -1574,12 +1665,40 @@ exports.page.home = function(req, res) {
 
 	/*
 		res		: response
-		page	: html code
+		htmlBody: html code
+		title	: page title
+		req		: express request
+		res		: express response
 		options	: optional - an object with different possible variables 
 				type : defaults to {"Content-Type":"text/html"}
 				code : defaults to 200
 	*/
-	function writePage(res, page, options) {
+	function writePage(htmlBody, title, req, res, options) {
+		var code = 200, type = {"Content-Type":"text/html"};
+		if(options !== undefined) {
+			if(options.code !== undefined) code = options.code;
+			if(options.type !== undefined) type = options.type;
+		}
+		
+		if(req.session.user) {
+			User.findById(req.session.user._id, function(err, user) {
+				req.session.user = user;
+				finish();
+			});
+		} else {
+			finish();
+		}
+		
+		function finish() {
+			var page = pageBuilder.buildPage(htmlBody, title, req, res, res.submitMessage);
+			
+			res.writeHead(code, type);
+			res.write(page);
+			res.end();
+		}
+	}
+
+	function writeHTML(res, page, options) {
 		var code = 200, type = {"Content-Type":"text/html"};
 		if(options !== undefined) {
 			if(options.code !== undefined) code = options.code;
@@ -1632,5 +1751,28 @@ exports.page.home = function(req, res) {
 			if (array[i] === obj) return true;
 		}
 		return false;
+	}
+	
+	// http://stackoverflow.com/a/280805/1411473
+	function highlight( data, search, elementType )
+	{
+		var elementType = elementType || "b";
+		return data.replace( new RegExp( "(" + preg_quote( search ) + ")" , 'gi' ), "<"+elementType+">$1</"+elementType+">" );
+		
+		function preg_quote( str ) {
+			// http://kevin.vanzonneveld.net
+			// +   original by: booeyOH
+			// +   improved by: Ates Goral (http://magnetiq.com)
+			// +   improved by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+			// +   bugfixed by: Onno Marsman
+			// *     example 1: preg_quote("$40");
+			// *     returns 1: '\$40'
+			// *     example 2: preg_quote("*RRRING* Hello?");
+			// *     returns 2: '\*RRRING\* Hello\?'
+			// *     example 3: preg_quote("\\.+*?[^]$(){}=!<>|:");
+			// *     returns 3: '\\\.\+\*\?\[\^\]\$\(\)\{\}\=\!\<\>\|\:'
+
+			return (str+'').replace(/([\\\.\+\*\?\[\^\]\$\(\)\{\}\=\!\<\>\|\:])/g, "\\$1");
+		}
 	}
 //}END Helper Functions

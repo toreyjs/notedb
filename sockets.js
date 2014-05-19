@@ -34,8 +34,9 @@ module.exports.start = function(lio) {
 						var note = user.notifications[i];
 						if(note._id == noteID) {
 							note.remove();
-							user.save(function() {
-								socket.emit('remove-notification-elem', { id:noteID });
+							user.save(function(err) {
+								if(!err)
+									socket.emit('remove-notification-elem', { id:noteID });
 							});
 							break;
 						}
@@ -95,11 +96,51 @@ module.exports.start = function(lio) {
 }
 
 module.exports.userAddedToBoard = function(newuser, board) {
-	console.log(board.users);
 	for (var i = 0; i < board.users.length; i++) {
 		User.findById(board.users[i].userID, function(err, user) {
-			user.notifications.push({ message:newuser.displayName+" has been added to board \""+board.boardName+"\"" });
-			//console.log(user.notifications);
+			user.notifications.push({ message:newuser.displayName+" has been added to board \"<a href='/board/"+board._id+"'>"+board.boardName+"</a>\"" });
+			user.save(function() {
+				var socket = _sockets[user._id];
+				if(socket) {
+					socket.emit('new-notification', user.notifications[user.notifications.length-1]);
+				}
+			});
+		});
+	}
+}
+
+module.exports.userAddedToCard = function(card, board) {
+	for (var i = 0; i < card.users.length; i++) {
+		User.findById(card.users[i].userID, function(err, user) {
+			user.notifications.push({ message:"A new user has been added to card \""+card.title+"\" on board \"<a href='/board/"+board._id+"'>"+board.boardName+"</a>\"" });
+			user.save(function() {
+				var socket = _sockets[user._id];
+				if(socket) {
+					socket.emit('new-notification', user.notifications[user.notifications.length-1]);
+				}
+			});
+		});
+	}
+}
+
+module.exports.commentAddedToCard = function(card, board) {
+	for (var i = 0; i < card.users.length; i++) {
+		User.findById(card.users[i].userID, function(err, user) {
+			user.notifications.push({ message:"New comment added to card \""+card.title+"\" on board \"<a href='/board/"+board._id+"'>"+board.boardName+"</a>\"" });
+			user.save(function() {
+				var socket = _sockets[user._id];
+				if(socket) {
+					socket.emit('new-notification', user.notifications[user.notifications.length-1]);
+				}
+			});
+		});
+	}
+}
+
+module.exports.cardEdited = function(card, board) {
+	for (var i = 0; i < card.users.length; i++) {
+		User.findById(card.users[i].userID, function(err, user) {
+			user.notifications.push({ message:"Card \""+card.title+"\" has been modified on board \"<a href='/board/"+board._id+"'>"+board.boardName+"</a>\"" });
 			user.save(function() {
 				var socket = _sockets[user._id];
 				if(socket) {

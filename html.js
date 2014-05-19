@@ -1,4 +1,5 @@
 var config = require('./config');
+var User = require('./schemas/user.js').model;
 
 function getHeader(title, req, message) {
 	if(title === undefined) title = "NO TITLE!";
@@ -63,6 +64,10 @@ function getNav() {
 	<form style='display:inline-block; vertical-align:bottom;' method='GET' action='/search'>\
 		<input type='text' name='q' />\
 		<input type='hidden' name='boards' value='1' />\
+		<input type='hidden' name='sections' value='1' />\
+		<input type='hidden' name='checkPublic' value='1' />\
+		<input type='hidden' name='checkPrivate' value='1' />\
+		<input type='hidden' name='checkOrg' value='1' />\
 		<input type='submit' value='🔍 Search' />\
 	</form>\
 	";
@@ -97,6 +102,7 @@ function getUserbox(req)
 								message += "\
 								<div class='notification' data-id='"+note._id+"'>\
 									"+note.message+"\
+									<a class='remove'>[remove]</a>\
 								</div>\
 								";
 							}

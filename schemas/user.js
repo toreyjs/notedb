@@ -14,6 +14,8 @@ Schema = new mongoose.Schema({
 	creationDate: { type: Date, 'default': Date.now }
 });
 
+Schema.set('versionKey', false); // Lets me do asynchronous remove requests - http://stackoverflow.com/questions/22053685/mongoose-no-matching-document-found-using-id-method-error-caused-by-asynchron
+
 // http://mongoosejs.com/docs/guide.html#statics
 Schema.statics.findByUsername = function(username, callback) {
 	return Model.findOne(

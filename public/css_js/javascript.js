@@ -12,8 +12,9 @@
 		if(attributes != undefined) {
 			if(attributes.class != undefined) { attributes.className = attributes.class; attributes.class = undefined; }
 			if(attributes.inner != undefined) { attributes.innerHTML = attributes.inner; attributes.inner = undefined; }
-			for(var key in attributes)
+			for(var key in attributes) {
 				element[key] = attributes[key];
+			}
 		}
 		if(parent != undefined) parent.appendChild(element);
 		return element;
@@ -97,21 +98,18 @@ var _socket = io.connect("//"+window.location.hostname
 			if(readAll = $$("#readAllNotifications")) {
 				readAll.addEventListener("click", function(e){
 					var notes = $$A("#alertContainer .notification");
-					forEach(notes, function(note) {
-						removeNotification(note);
-					});
-					toggleVisibility(alert);
+					forEach(notes, function(note) { removeNotification(note); });
 				});
 			}
 			
-			forEach($$A("#alertContainer .notification"), function(note) {
+			forEach($$A("#alertContainer .notification .remove"), function(note) {
 				note.addEventListener("click", removeNotificationEvent);
 			});
 		}
 	}
 	
 	function removeNotificationEvent(e) {
-		var note = e.target;
+		var note = e.target.parentNode;
 		removeNotification(note);
 	}
 	
@@ -481,10 +479,13 @@ var _socket = io.connect("//"+window.location.hostname
 		function listenForNotifications() {
 			_socket.on("new-notification", function(note) {
 				var notifications = $$("#alertContainer .notifications");
-				newElement("div", { class:"notification", "data-id":note._id, inner:note.message }, notifications)
-					.addEventListener("click", removeNotificationEvent);;
+				var divNote = newElement("div", { class:"notification", inner:note.message+" " }, notifications);
+				divNote.dataset.id = note._id;
+				newElement("a", { class:"remove", inner:"[remove]" }, divNote)
+					.addEventListener("click", removeNotificationEvent);
 				
 				var alert = $$("#alertContainer .alert");
+				if(alert.innerHTML == 0) { alert.style.visibility = "visible"; }
 				alert.innerHTML = parseInt(alert.innerHTML) + 1;
 			});
 			
@@ -494,6 +495,7 @@ var _socket = io.connect("//"+window.location.hostname
 				
 				var alert = $$("#alertContainer .alert");
 				alert.innerHTML = parseInt(alert.innerHTML) - 1;
+				if(alert.innerHTML == 0) { alert.style.visibility = "hidden"; }
 			});
 		}
 		
