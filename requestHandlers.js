@@ -1053,17 +1053,22 @@ exports.page.home = function(req, res) {
 					}
 					else if(req.body.removeboarduser) {
 						var userID = req.body.user;
-
-						for(var i = 0; i < board.users.length; i++) {
-							if(board.users[i].userID == userID) {
-								board.users[i].remove();
-								board.save(function(err, board) {
-									writeHTML(res, "User has successfully been removed from the board.");
-									return;
-								});
-								break;
+						
+						if(board.users.length > 1) {
+							for(var i = 0; i < board.users.length; i++) {
+								if(board.users[i].userID == userID) {
+									board.users[i].remove();
+									board.save(function(err, board) {
+										writeHTML(res, "User has successfully been removed from the board.");
+										return;
+									});
+									break;
+								}
 							}
+						} else {
+							writeHTML(res, "At least one user must be on a board. <a href='/board/"+board._id+"/settings'>[delete board]</a>", { code:404 });
 						}
+						
 					}
 					else if(req.body.deletecomment) {
 						var cardID = req.body.card;
@@ -1423,6 +1428,7 @@ exports.page.home = function(req, res) {
 				<ul>\
 					<li><a href='staff/UserRights'>Change User Rights</a></li>\
 					<li><a href='staff/ListUsers'>List Users</a></li>\
+					<li><a href='staff/ListBoards'>List Boards</a></li>\
 					<li><a href='staff/ListOrganizations'>List Organizations</a></li>\
 				</ul>\
 				";
@@ -1458,6 +1464,7 @@ exports.page.home = function(req, res) {
 		var pages = {
 			UserRights:UserRights,
 			ListUsers:ListUsers,
+			ListBoards:ListBoards,
 			ListOrganizations:ListOrganizations
 		};
 		var html = "<div style='background:#555; border:3px double #333; padding:3px 6px 3px 12px; margin-bottom:5px;'><a style='font-size:150%; color:#3A0303;' href='/staff'>Staff Dashboard</a></div>";
@@ -1526,6 +1533,41 @@ exports.page.home = function(req, res) {
 
 			function finish() {
 				writePage(html, "List Users", req, res);
+			}
+		}
+		
+		function ListBoards() {
+			var steps = makeSteps(listPrivate, listPublic, finish);
+			steps.nextStep();
+
+			function listPrivate() {
+				Board.find({ boardType:1 }, function(err, boards) {
+					html += "<h2>Private Boards</h2>\
+					<ul>";
+					for(var i in boards)
+					{ var board = boards[i];
+						html += util.format("<li><a href='/board/%s'>%s</a></li>", board._id, board.boardName);;
+					}
+					html += "</ul>";
+					steps.nextStep();
+				});
+			}
+
+			function listPublic() {
+				Board.find({ boardType:0 }, function(err, boards) {
+					html += "<h2>Public Boards</h2>\
+					<ul>";
+					for(var i in boards)
+					{ var board = boards[i];
+						html += util.format("<li><a href='/board/%s'>%s</a></li>", board._id, board.boardName);;
+					}
+					html += "</ul>";
+					steps.nextStep();
+				});
+			}
+
+			function finish() {
+				writePage(html, "List Boards", req, res);
 			}
 		}
 

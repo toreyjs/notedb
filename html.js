@@ -60,6 +60,7 @@ function getNav() {
 	<a href='/staff'>Staff Dashboard</a>\
 	<a href='/404'>404</a>\
 	<a href='/other/Syllabus.htm'>Syllabus</a>\
+	<a href='/images/doc.jpg'>Documentation</a>\
 	<span class='headerlinkborder'></span>\
 	<form style='display:inline-block; vertical-align:bottom;' method='GET' action='/search'>\
 		<input type='text' name='q' />\
